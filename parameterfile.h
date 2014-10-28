@@ -3,8 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "System.h"
 
-void parameterfile(
-int ntotal, int nvirt, double *hsml, double *mass, double c,
-double B, double g, double alpha, double epsilon, double dt);
+void parameterfile(System *sys, double epsilon, double dt);
 #endif

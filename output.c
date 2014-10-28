@@ -12,33 +12,37 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "param.h"
-#include "System.h"
+#include "output.h"
 
 void output(System *sys, int itime)
 {
   FILE *fip;
-  int d, i, nsum;
-  char filename_xv[30];
+  int nsum;
+  char filename_xv[128];
   // verify this fprintf statement
-  for(i = 1; i <itime; i++)
-    {
-      sprintf(filename_xv, "f_xv.%d.dat", itime);
-    }
-	
-  nsum = sys->ntotal + sys->nvirt + sys->nvll; /* fluid + boundary + virtual particles */
-  fip = fopen("filename_xv","w+");
-  nsum = sys->ntotal + sys->nvirt + sys->nvll;
+  memset(filename_xv, 0, sizeof(char)*128);
+  sprintf(filename_xv, "f_xv.%d.dat", itime);
+  
+  nsum = sys->ntotal + sys->NBoundaries + sys->NumberOfVirtualParticles; /* fluid + boundary + virtual particles */
+  fip = fopen(filename_xv,"w+");
   for(int i = 0; i < nsum; i++)
     {
-      for( int d = 0; d < sys->dim; d++)
+      
+      fprintf(fip, "%d ",i);
+      
+      for(int d = 0; d < sys->dim; d++)
 	{
-	  fprintf(fip, "%d\t%e\t%e\t%e\t%e\t%e\n", i, sys->Position[i][d],
-		  sys->Velocity[i][d], sys->rho[i], sys->Pressure[i], sys->Energy[i]);
+	  fprintf(fip, "\t%e", sys->Position[i][d]);
 	}
+      for(int d = 0; d < sys->dim; d++)
+	{
+	  fprintf(fip, "\t%e", sys->Velocity[i][d]);
+	}
+      fprintf(fip, "\t%e\t%e\t%e\n", sys->rho[i], sys->Pressure[i], sys->Energy[i]);
     }
-  fclose(fip);
-	
+  fclose(fip);	
 }	
 	
 	

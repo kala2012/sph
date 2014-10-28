@@ -1,7 +1,8 @@
 #ifndef _SYSTEM_H_
 #define _SYSTEM_H_
-#include <malloc.h>
 
+#include <malloc.h>
+#include <stdlib.h>
 
 
 typedef struct __system {
@@ -12,8 +13,8 @@ typedef struct __system {
   int NumberOfInteractingParticles;
   int MaxNumberOfParticles;
   int ntotal; /* total number of fluid particles */
-  int nvirt;  /* number of virtual particles */
-  int nvll;   /* number of boundary particles */
+  int NBoundaries;  /* number of virtual particles */
+  int NumberOfVirtualParticles;   /* number of boundary particles */
   double **Position; /* initialize the position vector */
   double **Velocity; /* initialize the velocity vector */
   double **Velocity_xsph; /* move particles with this average velocity */
@@ -39,6 +40,7 @@ typedef struct __system {
   int inflowParticles;
   double CompressionFactor;
   double AdiabaticConstant;
+  int niac;
 } System;
 
 System *CreateSystem(const int dim, 

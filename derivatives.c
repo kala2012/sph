@@ -25,105 +25,110 @@
 #include "inputbp.h"
 #include "parameterfile.h"
 #include "derivatives.h"
+#ifndef M_PI
+#    define M_PI 3.14159265358979323846
+#endif
 
-inline int CalculateKernel(System *sys)
+
+void CalculateKernel(System *sys)
 {
-  int niac = 0;
   double dx[3];
-  
+  int niac = 0;
   for(int i = 0; i < sys->ntotal; i++) // loop over all particles
     {
-      for(int j = 0; j < (sys->ntotal+sys->nvirt+sys->nvll); j++)
+      for(int j = i+1; j < (sys->ntotal+sys->NBoundaries+sys->NumberOfVirtualParticles); j++)
 	{
-	  if(i!=j) { 
-	    bool check1 = (sys->Position[i][0] >= 0.1) && (j > (sys->ntotal+sys->nvirt)); /* interaction if j>i */
-	    if(!check1)
-	      {
-		for(int d = 0; d < sys->dim; d++)
-		  {
-		    dx[d] = sys->Position[i][d] - sys->Position[j][d]; /*compute distance between 2 particles*/
-		  }
-		double r2 = dx[0]*dx[0] + dx[1]*dx[1]; /*square the initial seperation dist*/
-		double h = 0.5*(sys->hsml[i]+sys->hsml[j]); /* average smoothing length*/
-		if(r2 <= 4*h*h)
-		  {
-		    sys->i_pair[niac] = i;
-		    sys->j_pair[niac] = j;
-		    sys->rij2[niac] = r2;
-
-		    /*kernel is piecewise cubic spline*/
-		    double r = sqrt(r2);
-		    double q = r/h;
-		    sys->alpha_d = 10.0/(7*h*h); /*2D normalization const for spline*/
-
-		    /*define cubic spline*/
-		    if(q >= 0.0 && q <= 1.0)
-		      {
-			double q2 = q*q;
-			double q3 = q*q*q;
-			sys->w[niac] = sys->alpha_d*(1- 1.5*q2 + 0.75*q3);
-			for(int d = 0; d < sys->dim; d++)
-			  {
-			    sys->dwdx[niac][d] = sys->alpha_d*(-3 + 2.25*q)*dx[d]/(h*h);
-			  }
-		      }	
-		    else if(q >= 1.0 && q <= 2.0)
-		      {
-			double qp2 = (2-q)*(2-q);
-			double qp3 = qp2 * (2-q);
-			sys->w[niac] = sys->alpha_d*0.25*qp3;
-			for(int d = 0; d < sys->dim; d++)
-			  {
-			    sys->dwdx[niac][d] = -sys->alpha_d*0.75*qp2*dx[d]/(h*r);
-			  }
-		      }
-		    else
-		      {
-			sys->w[niac] = 0;
-			for(int d = 0; d < sys->dim; d++)
-			  {
-			    sys->dwdx[niac][d] = 0.0;
-			  }
-		      }
-		    niac ++;
-		  }
-	      }
-	  }
+	  bool check1 = (sys->Position[i][0] >= 0.1) && (j > (sys->ntotal+sys->NBoundaries)); /* interaction if j>i */
+	  if(!check1)
+	    {
+	      for(int d = 0; d < sys->dim; d++)
+		{
+		  dx[d] = sys->Position[i][d] - sys->Position[j][d]; /*compute distance between 2 particles*/
+		}
+	      double r2 = dx[0]*dx[0] + dx[1]*dx[1]; /*square the initial seperation dist*/
+	      double h = 0.5*(sys->hsml[i]+sys->hsml[j]); /* average smoothing length*/
+	      if(r2 <= 4.*h*h)
+		{
+		  sys->i_pair[niac] = i;
+		  sys->j_pair[niac] = j;
+		  sys->rij2[niac] = r2;
+		  
+		  /*kernel is piecewise cubic spline*/
+		  double r = sqrt(r2);
+		  double q = r/h;
+		  sys->alpha_d = 10.0/(7.*M_PI*h*h); /*2D normalization const for spline*/
+		  
+		  /*define cubic spline*/
+		  if(q >= 0.0 && q < 1.0)
+		    {
+		      double q2 = q*q;
+		      double q3 = q*q*q;
+		      sys->w[niac] = sys->alpha_d*(1- 1.5*q2 + 0.75*q3);
+		      for(int d = 0; d < sys->dim; d++)
+			{
+			  sys->dwdx[niac][d] = sys->alpha_d*(-3 + 2.25*q)*dx[d]/(h*h);
+			}
+		    }	
+		  else if(q >= 1.0 && q < 2.0)
+		    {
+		      double qp2 = (2-q)*(2-q);
+		      double qp3 = qp2 * (2-q);
+		      sys->w[niac] = sys->alpha_d*0.25*qp3;
+		      for(int d = 0; d < sys->dim; d++)
+			{
+			  sys->dwdx[niac][d] = -sys->alpha_d*0.75*qp2*dx[d]/(h*r);
+			}
+		    }
+		  else
+		    {
+		      sys->w[niac] = 0;
+		      for(int d = 0; d < sys->dim; d++)
+			{
+			  sys->dwdx[niac][d] = 0.0;
+			}
+		    }
+		  niac++;
+		}
+	    }
 	}
     }
   sys->NumberOfInteractingParticles = niac;
 }
 
-inline void MomentumEquations(System *sys)
+ void MomentumEquations(System *sys)
 {
   const double g = 9.81;
-  int niac = sys->NumberOfInteractingParticles;
+  const int niac = sys->NumberOfInteractingParticles;
   for(int k = 0; k < niac; k++)
     {
       int i = sys->i_pair[k];
       int j = sys->j_pair[k];
       double RR = 0.0;
       double f = 0.0; 
-		
-      double ppart = sys->Pressure[i]/pow(sys->rho[i],2) + sys->Pressure[j]/pow(sys->rho[j],2);
+      
+      double ppart = sys->Pressure[i]/(sys->rho[i]*sys->rho[i]) + sys->Pressure[j]/(sys->rho[j]*sys->rho[j]);
       if(virt_pres) /*virtual pressure for removing tensile instability*/
 	{             /*happens if p[i]<0 and p[j]<0*/
 	  f = sys->w[k]/(0.5*sys->alpha_d);
 	  if(sys->Pressure[i] < 0)
-	    RR = -0.2*sys->Pressure[i]/pow(sys->rho[i],2);
+	    RR = -0.2*sys->Pressure[i]/(sys->rho[i]*sys->rho[i]);
 	  
 	  if(sys->Pressure[j] < 0)
-	    RR = -0.2*sys->Pressure[j]/pow(sys->rho[j],2);
+	    RR = RR - 0.2*sys->Pressure[j]/(sys->rho[j]*sys->rho[j]);
  
 	  if(sys->Pressure[i] > 0 && sys->Pressure[j] > 0)
 	    RR = 0.01*ppart;
-	  // f^2
-	  f *= f;
-	  // f^4
-	  f *= f;
 	}
-      for(int d = 0; d < sys->dim; d++)
-	sys->dvdt[i][d] += -sys->mass[j]*(ppart + RR*f)*sys->dwdx[k][d];
+      // f^2
+      f *= f;
+      // f^4
+      f *= f;
+      for(int d = 0; d < sys->dim; d++) 
+	sys->dvdt[i][d] -= sys->mass[j]*(ppart + RR*f)*sys->dwdx[k][d];
+      if(j<sys->ntotal) {
+	for(int d = 0; d < sys->dim; d++) 
+	  sys->dvdt[j][d] += sys->mass[i]*(ppart + RR*f)*sys->dwdx[k][d];
+      }
     }
 
   /* gravity*/
@@ -134,12 +139,12 @@ inline void MomentumEquations(System *sys)
 
 /*Leonnard- Jones boundary force*/
 
-inline void LeonnardJonesBoundaryForces(System *sys)
+ void LeonnardJonesBoundaryForces(System *sys)
 {
-  double r0 = 0.1; /*initial particle spacing*/
-  double DD = 10.0;
+  const double r0 = 0.1; /*initial particle spacing*/
+  const double DD = 10.0;
   double dx[2];
-  for(int j = sys->ntotal; j < sys->ntotal + sys->nvirt; j++)
+  for(int j = sys->ntotal; j < sys->ntotal + sys->NBoundaries; j++)
     {
       for(int i = 0; i < sys->ntotal; i++)
 	{
@@ -154,7 +159,7 @@ inline void LeonnardJonesBoundaryForces(System *sys)
 	      double r = r0/sqrt(r2);
 	      r *= r; // r^2
 	      r *= r; // r^4	      
-	      double pb = DD*r*(r*r-1.);
+	      double pb = DD*r*(r*r-1.)/r2;
 	      for(int d = 0; d < sys->dim; d++)
 		{
 		  sys->dvdt[i][d] += pb*dx[d];
@@ -164,11 +169,11 @@ inline void LeonnardJonesBoundaryForces(System *sys)
     }
 }
 
-inline void DensityEquation(System *sys)
+ void DensityEquation(System *sys)
 {
   int niac = sys->NumberOfInteractingParticles;
   /* solve the density equation */
-  for(int k = 0; k < niac; k++) // niac = Total number of interacting particles
+  for(int k = 0; k < sys->niac; k++) // niac = Total number of interacting particles
     {
       int i = sys->i_pair[k]; /* interaction pair : particle i and particle j*/
       int j = sys->j_pair[k];
@@ -176,29 +181,25 @@ inline void DensityEquation(System *sys)
 	{
 	  double vijdwdx = (sys->Velocity_xsph[i][d] - sys->Velocity_xsph[j][d])*sys->dwdx[k][d];
 	  sys->drhodt[i] += sys->mass[j]*vijdwdx;
-	  sys->drhodt[j] += sys->mass[i]*vijdwdx; /* double change in sign = OK */
+	  if(j<sys->ntotal)
+	    sys->drhodt[j] += sys->mass[i]*vijdwdx; /* double change in sign = OK */
 	}
     }
-
-  /* we must divide by two because of double counting */
-  for(int i=0;i<sys->ntotal;i++)
-    sys->drhodt[i] *= 0.5;
 }
 
-inline void EquationOfState(System *sys) 
+ void EquationOfState(System *sys) 
 {
-  for(int i = 0; i < (sys->ntotal+sys->nvirt); i++)
+  for(int i = 0; i < (sys->ntotal+sys->NBoundaries); i++)
     {
-      double rho = sys->rho[i]/sys->rho0;
-      sys->Pressure[i] = sys->CompressionFactor*(pow(rho, sys->AdiabaticConstant) - 1);
+      const double rho = sys->rho[i]/sys->rho0;
+      sys->Pressure[i] = sys->CompressionFactor*(pow(rho,sys->AdiabaticConstant) - 1.);
+      /* printf("%d %.5lf %.5lf %.5lf %.5lf\n", i, sys->AdiabaticConstant, rho, sys->Pressure[i], sys->rho[i]); */
     }
 }
 
-inline void ArtificialViscosity (System *sys)
+ void ArtificialViscosity (System *sys)
 {
-  const int niac = sys->NumberOfInteractingParticles;
-
-  for(int k = 0; k < niac; k++)
+  for(int k = 0; k < sys->niac; k++)
     {
       int i = sys->i_pair[k];
       int j = sys->j_pair[k];
@@ -218,22 +219,22 @@ inline void ArtificialViscosity (System *sys)
 	      double artvisc = -sys->alpha*sys->SpeedOfSound*nu/mrho;
 	      for(int d = 0; d < sys->dim; d++)
 		{
-		  sys->dvdt[i][d] += -sys->mass[j]*artvisc*sys->dwdx[k][d];
-		  /* if(j < sys->ntotal) */
-		  /*   { */
-		  /*     sys->dvdt[j][d] += sys->mass[i]*artvisc*sys->dwdx[k][d];	 */
-		  /*   } */
+		  sys->dvdt[i][d] -= sys->mass[j]*artvisc*sys->dwdx[k][d];
 		}
+	      if(j<sys->ntotal) {
+		for(int d = 0; d < sys->dim; d++)
+		  sys->dvdt[j][d] += sys->mass[i]*artvisc*sys->dwdx[k][d];
+	      }
 	    }
+
 	}
     }
 }
 
-inline void AverageVelocity(System *sys)
+ void AverageVelocity(System *sys)
 {
   const int niac = sys->NumberOfInteractingParticles;
-
-  double epsilon = 0.5;
+  const double epsilon = 0.5;
   for(int k = 0; k < niac; k++)
     {
       int i = sys->i_pair[k];
@@ -247,12 +248,13 @@ inline void AverageVelocity(System *sys)
 	      // luckely m_i = m_j
 	      double avgpart = epsilon*(sys->Velocity_xsph[j][d]-sys->Velocity_xsph[i][d])*sys->w[k];
 	      sys->av[i][d] += sys->mass[j]*avgpart;
+	      sys->av[j][d] -= sys->mass[i]*avgpart;
 	    }
 	}
     }
 }
 
-inline int AverageInflowVelocity(System *sys)
+void AverageInflowVelocity(System *sys)
 {
 
   /*get average inflow velocity*/
@@ -289,19 +291,10 @@ inline int AverageInflowVelocity(System *sys)
 }
 void derivatives(System *sys, int itime, double dt)
 {
-  bool check1; 
-  int ii, inflowparts = 0;
-  double r, r2, dx[2];
-  double q, alpha_d;
-  double vijdwdx, c, B, ppart, mrho, epsilon;
-  double avgpart, h, f, RR, alpha, eta2, artvisc, g;
-  double vijrij, nu, xl = 1.0, vl = 1.0, r0, DD, pb;
-  double sumdvdt, sumav;
-  bool art_visc = true;
-  bool virt_pres = true;
-  bool avg_vel = true;
-  
-  
+  int ii;
+  double xl = 1.0, vl = 1.0;
+  double epsilon = 0.5;
+
   /* after moving particles inflow and outflow */
   
   /* figure out why this if-statement gives an error when " if{}"*/
@@ -323,35 +316,38 @@ void derivatives(System *sys, int itime, double dt)
     }
   
   /* boundary particles also need vxsph */
-  memcpy(sys->Velocity_xsph[sys->ntotal], sys->Velocity, sizeof(double)*sys->nvirt*sys->dim);
+  for(int i=0;i<sys->NBoundaries;i++) {
+    for(int d=0;d<sys->dim;d++)
+      sys->Velocity_xsph[sys->ntotal + i][d] = sys->Velocity[sys->ntotal+i][d];
+  }
 
   /* create virtual particles within 2h*/
-  ii = sys->ntotal + sys->nvirt;
+  ii = sys->ntotal + sys->NBoundaries;
 
   /*left boundary*/
-  for(int k = 0; k < sys->inflowParticles; k++)
-    {
-      int i = sys->i_inflow[k];
-      for(int j = 0; j <2; j++)
-	{
-	  sys->Position[ii][0] = -j*0.1 + sys->Position[i][0];
-	  sys->Position[ii][1] = sys->Position[i][1];
-	  sys->Position[ii][0] = sys->Position[i][0];
-	  sys->Velocity[ii][1] = sys->Velocity[i][1];
-	  sys->Velocity[ii][0] = sys->Velocity[i][0];
-	  sys->Velocity_xsph[ii][0] = sys->Velocity_xsph[i][0];
-	  sys->mass[ii] = sys->mass[i];
-	  sys->Pressure[ii] = sys->Pressure[i];
-	  sys->Energy[ii] = sys->Energy[i];
-	  sys->hsml[ii] = sys->hsml[i];
-	  ii ++;
-	}
-    }
+  /* for(int k = 0; k < sys->inflowParticles; k++) */
+  /*   { */
+  /*     int i = sys->i_inflow[k]; */
+  /*     for(int j = 0; j <2; j++) */
+  /* 	{ */
+  /* 	  sys->Position[ii][0] = -j*0.1 + sys->Position[i][0]; */
+  /* 	  sys->Position[ii][1] = sys->Position[i][1]; */
+  /* 	  sys->Position[ii][0] = sys->Position[i][0]; */
+  /* 	  sys->Velocity[ii][1] = sys->Velocity[i][1]; */
+  /* 	  sys->Velocity[ii][0] = sys->Velocity[i][0]; */
+  /* 	  sys->Velocity_xsph[ii][0] = sys->Velocity_xsph[i][0]; */
+  /* 	  sys->mass[ii] = sys->mass[i]; */
+  /* 	  sys->Pressure[ii] = sys->Pressure[i]; */
+  /* 	  sys->Energy[ii] = sys->Energy[i]; */
+  /* 	  sys->hsml[ii] = sys->hsml[i]; */
+  /* 	  ii ++; */
+  /* 	} */
+  /*   } */
 
   /*Bottom boundary*/
   for(int i = 0; i < sys->ntotal; i++)
     {
-      if(sys->Position[i][1] <= 2*sys->hsml[i] && sys->Position[i][0] <= 12.0)
+      if((sys->Position[i][1] <= 2*sys->hsml[i]) && (sys->Position[i][0] <= 12.0))
 	{
 	  sys->Position[ii][0] = sys->Position[i][0];
 	  sys->Position[ii][1] = -sys->Position[i][1];
@@ -369,10 +365,10 @@ void derivatives(System *sys, int itime, double dt)
     }
 
   /* Initialize derivatives: must be after inoutflow.h */
-  sys->nvll = ii - sys->ntotal - sys->nvirt;
+  sys->NumberOfVirtualParticles = ii - sys->ntotal - sys->NBoundaries;
   
-  memset(sys->dvdt[0], 0, sizeof(double)*(sys->ntotal+sys->nvirt+sys->nvll)*sys->dim);
-  memset(sys->av[0], 0, sizeof(double)*(sys->ntotal+sys->nvirt+sys->nvll)*sys->dim);
+  memset(sys->dvdt[0], 0, sizeof(double)*sys->MaxNumberOfParticles*sys->dim);
+  memset(sys->av[0], 0, sizeof(double)*sys->MaxNumberOfParticles*sys->dim);
 
   /* Interaction plus kernel definition*/
   CalculateKernel(sys);
@@ -406,5 +402,5 @@ void derivatives(System *sys, int itime, double dt)
   
   /* generate data file with useful info about the simulation*/
   if(itime ==1)
-    parameterfile(sys->ntotal, sys->nvirt, sys->hsml, sys->mass, c, B, g, alpha, epsilon, dt);
+    parameterfile(sys, epsilon, dt);
 }		

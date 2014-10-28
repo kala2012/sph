@@ -1,5 +1,5 @@
-CC=gcc
-CFLAGS=-g -O2 
+CC=icc
+CFLAGS=-g -D_USE_MATH_DEFINES
 OBJ= $(SRC:.c=.o)
 EXEC=sph
 SRC=derivatives.c inoutflow.c  inputbp.c  input.c  output.c  parameterfile.c  sph.c System.c
@@ -7,10 +7,10 @@ SRC=derivatives.c inoutflow.c  inputbp.c  input.c  output.c  parameterfile.c  sp
 all: $(EXEC)
 
 sph: $(OBJ)
-	gcc -std=c99 -g -o $@ $^ $(CFLAGS) -lm
+	${CC} -Wall -std=c99 -g  -o $@ $^ $(CFLAGS) -lm
 
 %.o: %.c
-	gcc -g -std=c99 -o $@ -c $< $(CFLAGS)
+	${CC} -Wall -g -std=c99 -o $@ -c $< $(CFLAGS)
 
 .PHONY: clean mrproper
 

@@ -81,18 +81,21 @@ void DestroySystem(System *a)
   DestroyMatrix(a->Velocity_min);
   DestroyMatrix(a->dvdt);
   DestroyMatrix(a->av);
+  DestroyMatrix(a->dwdx);
   
-  free(a->Pressure);
   free(a->Energy);
   free(a->hsml);
-  free(a->rij2);
-  free(a->w);
-  free(a->i_inflow);
-  free(a->mass);
+  free(a->Pressure);
   free(a->itype);
   free(a->rho);
   free(a->rho_min);
-  free(a->drhodt);
+  free(a->drhodt);  
+  free(a->mass);
+  free(a->i_pair);
+  free(a->j_pair);
+  free(a->rij2);
+  free(a->w);
+  free(a->i_inflow);
   free(a);
 }
 
