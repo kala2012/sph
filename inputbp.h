@@ -6,5 +6,5 @@
 #include "param.h"
 #include "System.h"
 
-void inputbp(System *sys, double xl, double vl, int itime, double dt);
+void inputbp(System *sys, double xl, double vl, double t);
 #endif

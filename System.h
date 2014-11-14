@@ -15,6 +15,7 @@ typedef struct __system {
   int ntotal; /* total number of fluid particles */
   int NBoundaries;  /* number of virtual particles */
   int NumberOfVirtualParticles;   /* number of boundary particles */
+  double LeftBoundary, RightBoundary;
   double **Position; /* initialize the position vector */
   double **Velocity; /* initialize the velocity vector */
   double **Velocity_xsph; /* move particles with this average velocity */
@@ -43,6 +44,8 @@ typedef struct __system {
   int niac;
 } System;
 
+double **CreateMatrix(int x, int y);
+void DestroyMatrix(double **a);
 System *CreateSystem(const int dim, 
 		     const int nx, 
 		     const int ny, 

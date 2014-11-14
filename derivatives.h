@@ -5,7 +5,7 @@
 #include <math.h>
 #include "System.h"
 
-void derivatives(System *sys, int itime, double dt);
+void derivatives(System *sys, double t);
 
 /* if using the gcc compiler, add -lm at end of compile command*/
 #endif

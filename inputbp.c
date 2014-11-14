@@ -6,13 +6,12 @@
 */
 #include "inputbp.h"
 
-void inputbp(System *sys, double xl, double vl, int itime, double dt)
+void inputbp(System *sys, double xl, double vl, double t)
 {
   FILE *fip, *fop, *fin;
   int i, j, d;
   double dx; /* dx = space*/
   bool vp_file = false;
-  sys->NBoundaries = 0;
   /* load boundary particles from file */
   if(vp_file)
     {
@@ -54,39 +53,41 @@ void inputbp(System *sys, double xl, double vl, int itime, double dt)
     {
       sys->NBoundaries = 0;
       dx = 0.1;
-      
+      /* t = 0;  */
+      sys->LeftBoundary = 0.2575*(1.- cos(2.445*t));
       /* boundary particles in bottom boundary */
-      for(int i = 0; i < 120; i++)
+      for(int i = -10; i < 112; i++)
 	{
-	  sys->Position[sys->ntotal+sys->NBoundaries][0] = i*dx;
+	  sys->Position[sys->ntotal+sys->NBoundaries][0] = i*dx + sys->LeftBoundary;
 	  sys->Position[sys->ntotal+sys->NBoundaries][1] = 0.0;
 	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.0;
 	  sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
 	  sys->NBoundaries++;
 	}
       /* boundary particles on left side */
-      for(int i = 0; i < 100; i++)
+      /* sys->LeftBoundary = 0.2575 - 0.2575*cos(2.445*t); */
+      for(int i = -10; i < 100; i++)
 	{
-	  sys->Position[sys->ntotal+sys->NBoundaries][0] = 0.2575 - 0.2575*cos(2.445*itime*dt);
+	  sys->Position[sys->ntotal+sys->NBoundaries][0] = sys->LeftBoundary;
 	  sys->Position[sys->ntotal+sys->NBoundaries][1] = (i+1)*dx;
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.2575*2.445*sin(2.445*itime*dt);
+	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.2575*2.445*sin(2.445*t);
 	  sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
-	  sys->NBoundaries ++;
-	  
+	  sys->NBoundaries ++;	  
 	}
-      xl = 0.2575 - 0.2575*cos(2.445*itime*dt);
-      vl = 0.2575*2.445*sin(2.445*itime*dt);
+      xl = 0.2575 - 0.2575*sin(2.445*t);
+      vl = 0.2575*2.445*cos(2.445*t);
       /* boundary particles on the right side */
-      for(int i = 0; i < 100; i++)
+      sys->RightBoundary = sys->LeftBoundary + 10.1;
+      for(int i = -10; i < 100; i++)
 	{
-	  sys->Position[sys->ntotal+sys->NBoundaries][0] = 0.2575 - 0.2575*cos(2.445*itime*dt) + 10.1;
+	  sys->Position[sys->ntotal+sys->NBoundaries][0] = sys->RightBoundary;
 	  sys->Position[sys->ntotal+sys->NBoundaries][1] = (i+1)*dx;
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.2575*2.445*sin(2.445*itime*dt);
+	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.2575*2.445*sin(2.445*t);
 	  sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
 	  sys->NBoundaries++;
 	}
-      xl = 0.2575 - 0.2575*cos(2.445*itime*dt);
-      vl = 0.2575*2.445*sin(2.445*itime*dt);
+      xl = 0.2575 - 0.2575*cos(2.445*t) + 10.1;
+      vl = 0.2575*2.445*sin(2.445*t);
       
       /* initialize fluid variables */
       for(int i = 0; i < sys->NBoundaries; i++)
@@ -102,7 +103,7 @@ void inputbp(System *sys, double xl, double vl, int itime, double dt)
   /* write data virt part to file */
   // FIX THIS !!!!!!!!!!
 
-  if(itime == 1)
+  if(t ==0 )
     {
       fip = fopen("xv_vp.dat","w+");
       fop = fopen("state_vp.dat","w+");

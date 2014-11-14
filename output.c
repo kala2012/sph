@@ -31,16 +31,18 @@ void output(System *sys, int itime)
     {
       
       fprintf(fip, "%d ",i);
-      
+      if(sys->Position[i][0] < -0.5) 
+	printf("%d\n", i);
       for(int d = 0; d < sys->dim; d++)
 	{
-	  fprintf(fip, "\t%e", sys->Position[i][d]);
+	  fprintf(fip, "\t%.10lf", sys->Position[i][d]);
+	  
 	}
       for(int d = 0; d < sys->dim; d++)
 	{
 	  fprintf(fip, "\t%e", sys->Velocity[i][d]);
 	}
-      fprintf(fip, "\t%e\t%e\t%e\n", sys->rho[i], sys->Pressure[i], sys->Energy[i]);
+      fprintf(fip, "\t%.10lf\t%.10lf\t%.10lf\n", sys->rho[i], sys->Pressure[i], sys->Energy[i]);
     }
   fclose(fip);	
 }	

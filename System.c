@@ -12,6 +12,7 @@ double **CreateMatrix(int x, int y)
 {
   double **a = (double **)malloc(sizeof(double *)*x);
   posix_memalign(a, 16, sizeof(double)*x*y);
+    
   for(int i=1;i<x;i++)
     a[i] = a[i-1] + y;
   return a;
@@ -42,6 +43,7 @@ System *CreateSystem(const int dim,
   //  a->nvirt = nvirt;
   a->MaxNumberOfParticles = MaxNumberOfParticles;
   a->alpha = alpha;
+
   a->Position = CreateMatrix(MaxNumberOfParticles, dim);
   a->Velocity = CreateMatrix(MaxNumberOfParticles, dim);
   a->Velocity_xsph = CreateMatrix(MaxNumberOfParticles, dim);
@@ -70,6 +72,7 @@ System *CreateSystem(const int dim,
   a->CompressionFactor = (1./AdiabaticConstant) * rho0 * SpeedOfSound * SpeedOfSound;
   a->AdiabaticConstant = AdiabaticConstant;
   a->rho0 = rho0;
+
   return a;
 }
 

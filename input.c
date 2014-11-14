@@ -79,19 +79,15 @@ void input(System *sys, double xl, double yl)
       /* initial condtions */
       for(int i = 0; i < sys->ntotal; i++)
 	{
-	  /* sys->v[i][0] = 0.0; */
-	  /* sys->v[i][1] = 0.0; */
-	  sys->rho[i] = sys->rho0*pow(1. - (9.81*sys->rho0/sys->CompressionFactor)*(sys->Position[sys->ny-1][1]-sys->Position[i][1]), 1/7);
+	  sys->rho[i] = sys->rho0*pow(1. + (9.81*sys->rho0/sys->CompressionFactor)*(sys->ny*space-sys->Position[i][1]), 1./7.);
 	  sys->mass[i] = 1000*space*space; /* density is mass over area in 2D*/
-	  /* sys->p[i] = 0.0; */
-	  /* sys->u[i] = 0.0; */
 	  sys->hsml[i] = 0.14;
 	  sys->itype[i] = 2;
+	  sys->Pressure[i] = 0;
 	}
 
       /* write just the derived particle info into file */
-      fprintf(fip, "%d\n", sys->ntotal);
-      /* printf("%d\n", sys->ntotal); */
+      /* fprintf(fip, "%d\n", sys->ntotal); */
       for(int i = 0; i < sys->ntotal; i++)
 	{
 	  fwrite(sys->Position[i], sizeof(double), 2, fip);
