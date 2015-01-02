@@ -1,0 +1,47 @@
+MAINTAINERCLEANFILES = Makefile.in
+AM_CPPFLAGS = \
+-I. \
+-I$(top_srcdir)/src/lib \
+@GSL_CFLAGS@ \
+@MPI_CFLAGS@ \
+@BLAS_CFLAGS@ \
+@HDF5_CFLAGS@ \
+@FFTW_CFLAGS@ \
+@POPT_CFLAGS@ \
+@IPP_CFLAGS@ \
+@XML2_CFLAGS@ 
+
+if HAVE_CUDA
+AM_CPPFLAGS += @CUDA_CFLAGS@ 
+endif
+
+libMC = $(top_builddir)/src/lib/.libs/libMC.la \
+@HDF5_LIBS@ \
+@GSL_LIBS@ \
+@FFTW_LIBS@ \
+@FFTW_MPI_LIBS@ \
+@MPI_LIBS@ \
+@BLAS_LIBS@ \
+@POPT_LIBS@ \
+@IPP_LIBS@ \
+@XML2_LIBS@ \
+-lpthread
+
+if HAVE_CUDA
+libMC += @CUDA_LIBS@
+endif
+
+bin_PROGRAMS = DynamicMeasurementBin StaticMeasurementBin MonteCarloRecuit ParallelTemporing
+
+DynamicMeasurementBin_LDADD = $(libMC)
+DynamicMeasurementBin_SOURCES = DynamicMeasurementBin.cc
+
+StaticMeasurementBin_LDADD = $(libMC)
+StaticMeasurementBin_SOURCES = StaticMeasurementBin.cc
+
+MonteCarloRecuit_LDADD = $(libMC)
+MonteCarloRecuit_SOURCES = MonteCarloRecuit.cc
+
+ParallelTemporing_LDADD = $(libMC)
+ParallelTemporing_SOURCES = ParallelTemporing.cc
+
