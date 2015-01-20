@@ -3,7 +3,10 @@
 
 #include <malloc.h>
 #include <stdlib.h>
-
+#include "defs.h"
+#include "dists.h"
+#include "rbc.h"
+#include "utils.h"
 
 typedef struct __system {
   int dim; // Dimension of the system
@@ -40,10 +43,18 @@ typedef struct __system {
   int *i_inflow;
   double *rij2, *w;
   double **dwdx;
+  int **Neighbors;
+  double **DistanceNeighbors;
+  matrix r;
+  int numReps;
+  rep *ri;
+  int NumberOfRepresentatives;
   int inflowParticles;
   double CompressionFactor;
   double AdiabaticConstant;
   int niac;
+  unint HowManyNeighbors;
+  matrix x,q;
 } System;
 
 double **CreateMatrix(int x, int y);
@@ -51,11 +62,14 @@ void DestroyMatrix(double **a);
 System *CreateSystem(const int dim, 
 		     const int nx, 
 		     const int ny, 
-		     const double Lx,
+		     const double Lx, 
 		     const double Ly,
 		     const double alpha, 
 		     const double SpeedOfSound, 
 		     const double rho0,
-		     const double AdiabaticConstant);
+		     const double AdiabaticConstant,
+		     const int HowManyNeighbors,
+		     const int numReps);
 void DestroySystem(System *a);
+void SearchNeighbors(System *sys);
 #endif

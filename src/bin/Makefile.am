@@ -2,6 +2,8 @@ MAINTAINERCLEANFILES = Makefile.in
 AM_CPPFLAGS = \
 -I. \
 -I$(top_srcdir)/src/lib \
+-I$(top_srcdir)/src/lib/deplib/CPU \
+-I$(top_srcdir)/src/lib/deplib/GPU \
 @GSL_CFLAGS@ \
 @BLAS_CFLAGS@ \
 @POPT_CFLAGS@ \

@@ -10,7 +10,7 @@
 #include<stdint.h>
 
 #define FLOAT_TOL 1e-7
-#define VEC_LEN 4 
+#define VEC_LEN 2 
 // The width of the vector (sse) instructions.  Change to 2 
 // if you wish to work in double precision.
 
@@ -37,17 +37,17 @@
 #define DIST_ROOT(x) ( (x)*(x) ) 
 
 // Format that the data is manipulated in:
-typedef float real;
-#define MAX_REAL FLT_MAX
-#define MIN_REAL (-1.0*FLT_MAX)
+//typedef float real;
+//#define MAX_REAL FLT_MAX
+//#define MIN_REAL (-1.0*FLT_MAX)
 
 // To switch to double precision, comment out the above 
 // three lines and uncomment the following three lines.   
 // You should also change the VEC_LEN to 2.
 
-//typedef double real;
-//#define MAX_REAL DBL_MAX
-//#define MIN_REAL (-1.0*DBL_MAX)
+typedef double real;
+#define MAX_REAL DBL_MAX
+#define MIN_REAL (-1.0*DBL_MAX)
 
 #define DUMMY_IDX UINT_MAX
 #define DELETED_IDX UINT_MAX-1 //used by heap

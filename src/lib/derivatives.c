@@ -85,33 +85,30 @@ void CalculateKernel(System *sys)
   memset(sys->w, 0, sizeof(double)*sys->MaxNumberOfParticles);
   memset(sys->dwdx[0], 0, 2*sizeof(double)*sys->MaxNumberOfParticles);
   int niac = 0;
+  
+  SearchNeighbors(sys);
+ 
   for(int i = 0; i < sys->ntotal; i++) // loop over all particles
     {
-      int test = (sys->Position[i][0]>= sys->dx);
-      for(int j = i+1; j < particles; j++)
-	{
-	  int check = test&&(j>(sys->ntotal+sys->NBoundaries-1));
-	  if(!check) {
-	    
-	    /*compute distance between 2 particles*/
+      int test = (sys->Position[i][0] >= sys->dx);
+      for(int j=1;j<sys->HowManyNeighbors;j++) {
+	/*compute distance between 2 particles*/
 #pragma ivdep
+	double h = 0.5*(sys->hsml[i]+sys->hsml[sys->Neighbors[i][j]]); /* average smoothing length*/
+	if(sys->DistanceNeighbors[i][j] <= 2*h)
+	  {
+	    double r2 = sys->DistanceNeighbors[i][j]*sys->DistanceNeighbors[i][j]; /*square the initial separation dist*/
 	    for(int d = 0; d < sys->dim; d++)
-	      dx[d] = sys->Position[i][d] - sys->Position[j][d]; 
-	    
-	    double r2 = dx[0]*dx[0] + dx[1]*dx[1]; /*square the initial separation dist*/
-	    double h = 0.5*(sys->hsml[i]+sys->hsml[j]); /* average smoothing length*/
-	    if(r2 <= 4.*h*h)
-	      {
-		sys->i_pair[niac] = i;
-		sys->j_pair[niac] = j;
-		sys->rij2[niac] = r2;
-		/*kernel is piecewise cubic spline*/
-		double r = sqrt(r2);
-		Kernel(sys, dx, r, h, niac);
-		niac++;
-	      }
+	      dx[d] = sys->Position[i][d] - sys->Position[sys->Neighbors[i][j]][d]; 
+	    sys->i_pair[niac] = i;
+	    sys->j_pair[niac] = sys->Neighbors[i][j];
+	    sys->rij2[niac] = r2;
+	    /*kernel is piecewise cubic spline*/
+	    double r = sqrt(r2);
+	    Kernel(sys, dx, r, h, niac);
+	    niac++;
 	  }
-	}
+      }
     }
   sys->NumberOfInteractingParticles = niac;
 }

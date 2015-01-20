@@ -22,4 +22,5 @@ void searchStats(matrix,matrix,matrix,rep*,double*);
 void reshuffleX(matrix y, matrix x, rep *ri, unint numReps);
 
 void freeRBC(matrix r, rep *ri);
+void cleanup();
 #endif

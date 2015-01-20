@@ -22,7 +22,7 @@ int main(void)
 {
   const int dim=2;
   double dt = 1e-3; /* set timestep */
-  unsigned int maxtimestep = 1000; /* set maximum timestep */
+  unsigned int maxtimestep = 10; /* set maximum timestep */
   int printstep = 1;
   int screenstep = 1;
   int itime; /* iteration time */
@@ -30,7 +30,7 @@ int main(void)
   int ny = 50;  /* number of particles in y-direction */
   
   // parameters for water
-  System *sys = CreateSystem(dim, nx, ny, 10, 5, 0.01, 50.0, 1000, 7);
+  System *sys = CreateSystem(dim, nx, ny, 10, 5, 0.01, 50.0, 1000, 7, 64, 128);
   double xl = 1.0;
   double yl = 1.0;
 
@@ -40,20 +40,24 @@ int main(void)
 
   input(sys, xl, yl); 
 
+  //SearchNeighbors(sys);
+
+  
+  
   memset(sys->dvdt[0], 0, sizeof(double)*sys->MaxNumberOfParticles*sys->dim);
   memset(sys->drhodt, 0, sizeof(double)*sys->MaxNumberOfParticles);
   memcpy(sys->rho_min, sys->rho, sizeof(double)*sys->ntotal);
   
-  for(itime = 1; itime <= maxtimestep; itime++) 
+  for(itime = 1; itime <= maxtimestep; itime++)
     {
       double t = itime * dt;
       if(itime!=1) {
       	memcpy(sys->rho_min, sys->rho, sizeof(double)*sys->ntotal);
 	
-	/* cblas_daxpy(sys->ntotal, 0.5*dt, sys->drhodt, 1, sys->rho, 1); */
-	/* memcpy(sys->Velocity_min[0], sys->Velocity[0], sizeof(double)*2*sys->ntotal); */
-	/* cblas_daxpy(sys->ntotal, 0.5*dt, sys->dvdt[0], 1, sys->Velocity_xsph[0], 1); */
-	/* cblas_daxpy(sys->ntotal, 0.5*dt, sys->dvdt[0], 1, sys->Velocity[0], 1); */
+  	/* cblas_daxpy(sys->ntotal, 0.5*dt, sys->drhodt, 1, sys->rho, 1); */
+  	/* memcpy(sys->Velocity_min[0], sys->Velocity[0], sizeof(double)*2*sys->ntotal); */
+  	/* cblas_daxpy(sys->ntotal, 0.5*dt, sys->dvdt[0], 1, sys->Velocity_xsph[0], 1); */
+  	/* cblas_daxpy(sys->ntotal, 0.5*dt, sys->dvdt[0], 1, sys->Velocity[0], 1); */
 	
       	for(int i=0;i<sys->ntotal ;i++) {
       	  sys->rho[i] += 0.5*dt*sys->drhodt[i];
@@ -67,8 +71,8 @@ int main(void)
       }
       
       if(itime==1) {
-	memcpy(sys->Velocity_xsph[0], sys->Velocity[0], sizeof(double)*sys->dim*sys->MaxNumberOfParticles);
-	memcpy(sys->Velocity_min[0], sys->Velocity[0], sizeof(double)*sys->dim*sys->MaxNumberOfParticles);
+  	memcpy(sys->Velocity_xsph[0], sys->Velocity[0], sizeof(double)*sys->dim*sys->MaxNumberOfParticles);
+  	memcpy(sys->Velocity_min[0], sys->Velocity[0], sizeof(double)*sys->dim*sys->MaxNumberOfParticles);
       }
 
       derivatives(sys, t);
@@ -93,16 +97,16 @@ int main(void)
       	}
       }
       if( (itime % printstep) == 0)
-	{
-	  printf("%.10lf %.10lf %.10lf %.10lf %.10lf %.10lf %.10lf\n",
-		 sys->Velocity[0][0],
-		 sys->Velocity[0][1],
-		 sys->dvdt[0][0],
-		 sys->dvdt[0][1],
-		 sys->Pressure[0],
-		 sys->rho[0],
-		 sys->drhodt[0]);
-	  output(sys, itime);
+  	{
+  	  printf("%.10lf %.10lf %.10lf %.10lf %.10lf %.10lf %.10lf\n",
+  		 sys->Velocity[0][0],
+  		 sys->Velocity[0][1],
+  		 sys->dvdt[0][0],
+  		 sys->dvdt[0][1],
+  		 sys->Pressure[0],
+  		 sys->rho[0],
+  		 sys->drhodt[0]);
+  	  output(sys, itime);
   	}
       if( (itime % screenstep) == 0)
   	{

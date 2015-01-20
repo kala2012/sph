@@ -22,15 +22,13 @@ SPH_SOURCES =  derivatives.c \
 	input.c \
 	output.c \
 	parameterfile.c \
-	System.c
-
-#	${top_srcdir}/deplib/CPU/brute.c \
-#	${top_srcdir}/deplib/CPU/deprecated.c \
-#	${top_srcdir}/deplib/CPU/dists.c \
-#	${top_srcdir}/deplib/CPU/exactDriver.c \
-#	${top_srcdir}/deplib/CPU/oneShotDriver.c \
-#	${top_srcdir}/deplib/CPU/rbc.c \
-#	${top_srcdir}/deplib/CPU/utils.c	
+	System.c \
+	deplib/CPU/brute.c \
+	deplib/CPU/dists.c \
+	deplib/CPU/exactDriver.c \
+	deplib/CPU/oneShotDriver.c \
+	deplib/CPU/rbc.c \
+	deplib/CPU/utils.c	
 
 #OTHERS_SOURCES = Hamiltonian.cu \
 #		 Math_cuda.cu \
@@ -40,14 +38,16 @@ SPH_SOURCES =  derivatives.c \
 
 libSPH_la_SOURCES = $(SPH_SOURCES)
 
-libSPH_la_CFLAGS = -I$(top_srcdir) -I${top_srcdir}/deplib/CPU -I${top_srcdir}/deplib/GPU \
+libSPH_la_CFLAGS = -I$(top_srcdir) -Ideplib/CPU -Ideplib/GPU \
 @GSL_CFLAGS@ \
 @BLAS_CFLAGS@ \
-@IPP_CFLAGS@ 
+@IPP_CFLAGS@ \
+@OPENMP_CFLAGS@
 
 libSPH_la_LIBADD = @GSL_LIBS@ \
 @BLAS_LIBS@ \
 @IPP_LIBS@ \
+@OPENMP_CFLAGS@ \
 -lm 
 
 libSPH_la_LDFLAGS = -no-undefined -version-info @version_info@ 

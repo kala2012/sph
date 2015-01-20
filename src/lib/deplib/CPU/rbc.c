@@ -21,6 +21,10 @@
 #include<math.h>
 #include<stdint.h>
 
+gsl_rng * rng = NULL;
+const gsl_rng_type *rngT = NULL;
+unint *shuf = NULL;
+int shufSize = 0;
 
 /* ************ EXACT SEARCH METHOD ************ */
 
@@ -82,7 +86,11 @@ void buildExact(matrix x, matrix *r, rep *ri, unint numReps){
   //algorithm, but might be used in the future.
   size_t *p = (size_t*)calloc(longestLength, sizeof(*p));
   for(i=0; i<numReps; i++){
+#ifdef SINGLE
     gsl_sort_float_index( p, tempD[i], 1, ri[i].len );
+#else
+    gsl_sort_index( p, tempD[i], 1, ri[i].len );
+#endif
     for(j=0; j<ri[i].len; j++){
       ri[i].dists[j] = tempD[i][p[j]];
       ri[i].lr[j] = tempI[i][p[j]];
@@ -475,31 +483,34 @@ void pickReps(matrix x, matrix *r){
   unint n = x.r;
   unint i, j;
 
-  unint *shuf = (unint*)calloc(n, sizeof(*shuf));
+  if(shuf == NULL) {
+    shuf = (unint*)calloc(n, sizeof(*shuf));
+    shufSize = n;
+  }
+  if(shufSize < n)
+    shuf = realloc(shuf, n*sizeof(*shuf));
   for(i=0; i<n; i++)
     shuf[i]=i;
 
 
   //generate a random permutation of 1..n
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  gsl_rng * rng;
-  const gsl_rng_type *rngT;
-  
-  gsl_rng_env_setup();
-  rngT = gsl_rng_default;
-  rng = gsl_rng_alloc(rngT);
-  gsl_rng_set(rng,tv.tv_usec);
+  /* struct timeval tv; */
+  /* gettimeofday(&tv,NULL); */
+
+  if(rng == NULL) {
+    gsl_rng_env_setup();
+    rngT = gsl_rng_default;
+    rng = gsl_rng_alloc(rngT);
+    gsl_rng_set(rng, 34780136);
+  }
   
   gsl_ran_shuffle(rng, shuf, n, sizeof(*shuf));
-  gsl_rng_free(rng);
  
   for(i=0; i<r->r; i++){
     for(j=0; j<r->c; j++){
       r->mat[IDX( i, j, r->ld )] = x.mat[IDX( shuf[i], j, x.ld )];
     }
   }
-  free(shuf);
 }
 
 
@@ -546,7 +557,11 @@ void freeRBC(matrix r, rep *ri){
       free( ri[i].dists );
   }
   free(ri);
-
 }
 
+void cleanup()
+{
+  free(shuf);
+  gsl_rng_free(rng);
+}
 #endif

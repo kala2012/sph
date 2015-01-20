@@ -10,7 +10,7 @@
 double **CreateMatrix(int x, int y)
 {
   double **a = (double **)malloc(sizeof(double *)*x);
-  posix_memalign(a, 16, sizeof(double)*x*y);
+  posix_memalign((void **)a, 16, sizeof(double)*x*y);
     
   for(int i=1;i<x;i++)
     a[i] = a[i-1] + y;
@@ -21,7 +21,7 @@ double **CreateMatrix(int x, int y)
 int **CreateMatrixInt(int x, int y)
 {
   int **a = (int **)malloc(sizeof(int *)*x);
-  posix_memalign(a, 16, sizeof(int)*x*y);
+  posix_memalign((void **)a, 16, sizeof(int)*x*y);
     
   for(int i=1;i<x;i++)
     a[i] = a[i-1] + y;
@@ -43,7 +43,9 @@ System *CreateSystem(const int dim,
 		     const double alpha, 
 		     const double SpeedOfSound, 
 		     const double rho0,
-		     const double AdiabaticConstant)
+		     const double AdiabaticConstant,
+		     const int HowManyNeighbors,
+		     const int numReps)
 {
   System *a = (System *)malloc(sizeof(System));
   memset(a, 0, sizeof(System));
@@ -69,19 +71,19 @@ System *CreateSystem(const int dim,
   a->av = CreateMatrix(a->MaxNumberOfParticles, dim);
   a->dwdx = CreateMatrix(a->MaxNumberOfParticles, dim);
   
-  posix_memalign(&a->Energy, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->hsml, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->Pressure, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->itype, 16, sizeof(int)*a->MaxNumberOfParticles);
-  posix_memalign(&a->rho, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->rho_min, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->drhodt, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->mass, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->i_pair, 16, sizeof(int)*a->MaxNumberOfParticles);
-  posix_memalign(&a->j_pair, 16, sizeof(int)*a->MaxNumberOfParticles);
-  posix_memalign(&a->rij2, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->w, 16, sizeof(double)*a->MaxNumberOfParticles);
-  posix_memalign(&a->i_inflow, 16, sizeof(int)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->Energy, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->hsml, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->Pressure, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->itype, 16, sizeof(int)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->rho, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->rho_min, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->drhodt, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->mass, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->i_pair, 16, sizeof(int)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->j_pair, 16, sizeof(int)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->rij2, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->w, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign((void **)&a->i_inflow, 16, sizeof(int)*a->MaxNumberOfParticles);
 
   a->alpha_d = 0;
   a->SpeedOfSound = SpeedOfSound;
@@ -89,7 +91,17 @@ System *CreateSystem(const int dim,
   a->CompressionFactor = (1./AdiabaticConstant) * rho0 * SpeedOfSound * SpeedOfSound;
   a->AdiabaticConstant = AdiabaticConstant;
   a->rho0 = rho0;
+
   
+  // We only need to calculate the neighbors of the particles in the box
+  a->HowManyNeighbors = HowManyNeighbors;
+  a->Neighbors = CreateMatrixInt(a->ntotal, a->HowManyNeighbors);
+  a->DistanceNeighbors = CreateMatrix(a->ntotal, a->HowManyNeighbors);
+  a->numReps = numReps;
+  
+  
+  initMat( &a->q, a->ntotal, a->dim);
+  a->q.mat=a->Position[0];
   return a;
 }
 
@@ -102,6 +114,8 @@ void DestroySystem(System *a)
   DestroyMatrix(a->dvdt);
   DestroyMatrix(a->av);
   DestroyMatrix(a->dwdx);
+  DestroyMatrix(a->DistanceNeighbors);
+  DestroyMatrix((double **)a->Neighbors);
   
   free(a->Energy);
   free(a->hsml);
@@ -117,5 +131,25 @@ void DestroySystem(System *a)
   free(a->w);
   free(a->i_inflow);
   free(a);
+  cleanup();
+  
 }
 
+void SearchNeighbors(System *sys)
+{
+  sys->ri = (rep*)calloc( CPAD(sys->numReps), sizeof(*sys->ri) ); //data struct for RBC
+  initMat(&sys->x, sys->ntotal+sys->NBoundaries+sys->NumberOfVirtualParticles, sys->dim);
+  sys->x.mat = sys->Position[0];
+  /* buildExact(sys->x, &sys->r, sys->ri, sys->numReps); */
+  /* searchExactK(sys->q, sys->x, sys->r, sys->ri, (unint **)sys->Neighbors, sys->DistanceNeighbors, sys->HowManyNeighbors); */
+  /* for(int c=0;c<32;c++) */
+  /*   printf("%.5lf ", sys->DistanceNeighbors[0][c]); */
+  /* freeRBC(sys->r, sys->ri); */
+  //sys->ri = (rep*)calloc( CPAD(sys->numReps), sizeof(*sys->ri) ); //data struct for RBC
+  buildOneShot(sys->x, &sys->r, sys->ri, sys->numReps);
+  searchOneShotK(sys->q, sys->x, sys->r, sys->ri, (unint **)sys->Neighbors, sys->DistanceNeighbors, sys->HowManyNeighbors);
+  freeRBC(sys->r, sys->ri);
+  /* printf("\n"); */
+  /* for(int c=0;c<32;c++) */
+  /*   printf("%.5lf ", sys->DistanceNeighbors[0][c]); */
+}
