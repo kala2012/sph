@@ -18,19 +18,20 @@
 #include "output.h"
 #include "System.h"
 
-int main(void)
+int main(int argc, char **argv)
 {
   const int dim=2;
   double dt = 1e-3; /* set timestep */
-  unsigned int maxtimestep = 10; /* set maximum timestep */
+  unsigned int maxtimestep = 139; /* set maximum timestep */
   int printstep = 1;
   int screenstep = 1;
   int itime; /* iteration time */
   int nx = 100; /* number of particles in x-dirextion */
   int ny = 50;  /* number of particles in y-direction */
-  
+
+  maxtimestep= atoi(argv[1]);
   // parameters for water
-  System *sys = CreateSystem(dim, nx, ny, 10, 5, 0.01, 50.0, 1000, 7, 64, 128);
+  System *sys = CreateSystem(dim, nx, ny, 10, 5, 0.01, 50.0, 1000, 7, 64, 200);
   double xl = 1.0;
   double yl = 1.0;
 
@@ -41,7 +42,7 @@ int main(void)
   input(sys, xl, yl); 
 
   //SearchNeighbors(sys);
-
+ 
   
   
   memset(sys->dvdt[0], 0, sizeof(double)*sys->MaxNumberOfParticles*sys->dim);
@@ -66,8 +67,7 @@ int main(void)
       	    sys->Velocity_xsph[i][d] += 0.5 * dt * sys->dvdt[i][d];
       	    sys->Velocity[i][d] +=  0.5 * dt * sys->dvdt[i][d];
       	  }
-      	}
-	
+      	}	
       }
       
       if(itime==1) {
@@ -77,6 +77,8 @@ int main(void)
 
       derivatives(sys, t);
 
+      
+      
       if(itime==1) {
       	for(int i=0;i<sys->ntotal ;i++) {
       	  sys->rho[i] += 0.5*dt*sys->drhodt[i];

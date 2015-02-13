@@ -18,6 +18,7 @@ double **CreateMatrix(int x, int y)
 }
 
 
+
 int **CreateMatrixInt(int x, int y)
 {
   int **a = (int **)malloc(sizeof(int *)*x);
@@ -137,18 +138,18 @@ void DestroySystem(System *a)
 
 void SearchNeighbors(System *sys)
 {
-  sys->ri = (rep*)calloc( CPAD(sys->numReps), sizeof(*sys->ri) ); //data struct for RBC
+  sys->ri = (rep*)malloc( CPAD(sys->numReps)* sizeof(*sys->ri) ); //data struct for RBC
   initMat(&sys->x, sys->ntotal+sys->NBoundaries+sys->NumberOfVirtualParticles, sys->dim);
   sys->x.mat = sys->Position[0];
-  /* buildExact(sys->x, &sys->r, sys->ri, sys->numReps); */
-  /* searchExactK(sys->q, sys->x, sys->r, sys->ri, (unint **)sys->Neighbors, sys->DistanceNeighbors, sys->HowManyNeighbors); */
+  /* buildExact(sys->x, &sys->r, sys->ri, sys->numReps);  */
+  /* searchExactK(sys->q, sys->x, sys->r, sys->ri, (unint **)sys->Neighbors, sys->DistanceNeighbors, sys->HowManyNeighbors);  */
   /* for(int c=0;c<32;c++) */
   /*   printf("%.5lf ", sys->DistanceNeighbors[0][c]); */
   /* freeRBC(sys->r, sys->ri); */
   //sys->ri = (rep*)calloc( CPAD(sys->numReps), sizeof(*sys->ri) ); //data struct for RBC
   buildOneShot(sys->x, &sys->r, sys->ri, sys->numReps);
   searchOneShotK(sys->q, sys->x, sys->r, sys->ri, (unint **)sys->Neighbors, sys->DistanceNeighbors, sys->HowManyNeighbors);
-  freeRBC(sys->r, sys->ri);
+  freeRBC(sys->r, sys->ri); 
   /* printf("\n"); */
   /* for(int c=0;c<32;c++) */
   /*   printf("%.5lf ", sys->DistanceNeighbors[0][c]); */

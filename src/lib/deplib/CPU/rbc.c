@@ -57,7 +57,7 @@ void buildExact(matrix x, matrix *r, rep *ri, unint numReps){
   for(i=0; i<numReps; i++){
     ri[i].len = 0;
     ri[i].radius = 0;
-}    
+  }    
   
   for(i=0; i<n; i++){
     ri[repID[i]].radius = MAX( dToReps[i], ri[repID[i]].radius );
@@ -401,6 +401,7 @@ void buildOneShot(matrix x, matrix *r, rep *ri, unint numReps){
                      //as suggested by theory. 
   unint ps = CPAD(s);
   unint i, j;
+
   
   if( numReps > x.r ){
     fprintf( stderr, "number of representatives must be less than the DB size\n");
@@ -409,6 +410,7 @@ void buildOneShot(matrix x, matrix *r, rep *ri, unint numReps){
 
   initMat( r, numReps, x.c );
   r->mat = (real*)calloc( sizeOfMat(*r), sizeof(*r->mat));
+
 
   //pick r random reps
   pickReps(x,r); 
@@ -431,6 +433,7 @@ void buildOneShot(matrix x, matrix *r, rep *ri, unint numReps){
     for (j=0; j<s; j++){
       ri[i].lr[j] = repID[i][j];
     }
+    
     //ri[i].radius = distVec( *r, x, i, ri[i].lr[s-1]);  //Not actually needed by one-shot alg
   }
   
@@ -503,7 +506,6 @@ void pickReps(matrix x, matrix *r){
     rng = gsl_rng_alloc(rngT);
     gsl_rng_set(rng, 34780136);
   }
-  
   gsl_ran_shuffle(rng, shuf, n, sizeof(*shuf));
  
   for(i=0; i<r->r; i++){

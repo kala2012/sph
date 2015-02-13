@@ -53,7 +53,7 @@ void inputbp(System *sys, double xl, double vl, double t)
     {
       sys->NBoundaries = 0;
       dx = 0.1;
-      /* t = 0; */  
+      //t = 0;   
       sys->LeftBoundary = 0.2575*(1.- cos(2.445*t));
       /* boundary particles in bottom boundary */
       for(int i = -10; i < 112; i++)

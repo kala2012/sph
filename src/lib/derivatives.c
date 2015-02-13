@@ -61,7 +61,6 @@ __inline__ void Kernel(System *sys, const double *__restrict__ dx, const double 
       double q2 = q*q;
       double q3 = q*q*q;
       sys->w[niac] = sys->alpha_d*(1- 1.5*q2 + 0.75*q3);
-#pragma ivdep
       for(int d = 0; d < sys->dim; d++)
 	sys->dwdx[niac][d] = sys->alpha_d*(-3 + 2.25*q)*dx[d]/(h*h);
     }
@@ -91,22 +90,23 @@ void CalculateKernel(System *sys)
   for(int i = 0; i < sys->ntotal; i++) // loop over all particles
     {
       int test = (sys->Position[i][0] >= sys->dx);
-      for(int j=1;j<sys->HowManyNeighbors;j++) {
+      for(int j=0;j<sys->HowManyNeighbors;j++) {
 	/*compute distance between 2 particles*/
-#pragma ivdep
-	double h = 0.5*(sys->hsml[i]+sys->hsml[sys->Neighbors[i][j]]); /* average smoothing length*/
-	if(sys->DistanceNeighbors[i][j] <= 2*h)
-	  {
-	    double r2 = sys->DistanceNeighbors[i][j]*sys->DistanceNeighbors[i][j]; /*square the initial separation dist*/
-	    for(int d = 0; d < sys->dim; d++)
-	      dx[d] = sys->Position[i][d] - sys->Position[sys->Neighbors[i][j]][d]; 
-	    sys->i_pair[niac] = i;
-	    sys->j_pair[niac] = sys->Neighbors[i][j];
-	    sys->rij2[niac] = r2;
-	    /*kernel is piecewise cubic spline*/
-	    double r = sqrt(r2);
-	    Kernel(sys, dx, r, h, niac);
-	    niac++;
+	if(sys->Neighbors[i][j] > i) {
+	  double h = 0.5*(sys->hsml[i]+sys->hsml[sys->Neighbors[i][j]]); /* average smoothing length*/
+	  if(sys->DistanceNeighbors[i][j] <= 2*h)
+	    {
+	      double r2 = sys->DistanceNeighbors[i][j]*sys->DistanceNeighbors[i][j]; /*square the initial separation dist*/
+	      for(int d = 0; d < sys->dim; d++)
+		dx[d] = sys->Position[i][d] - sys->Position[sys->Neighbors[i][j]][d]; 
+	      sys->i_pair[niac] = i;
+	      sys->j_pair[niac] = sys->Neighbors[i][j];
+	      sys->rij2[niac] = r2;
+	      /*kernel is piecewise cubic spline*/
+	      double r = sqrt(r2);
+	      Kernel(sys, dx, r, h, niac);
+	      niac++;
+	    }
 	  }
       }
     }
@@ -146,7 +146,6 @@ void MomentumEquations(System *sys)
 	sys->dvdt[j][d] += sys->mass[i]*(ppart + RR*f)*sys->dwdx[k][d];
     }
 
-#pragma omp parallel for
   for(int i=0;i<sys->ntotal;i++)
     sys->dvdt[i][1] -= g;
 }
@@ -163,7 +162,6 @@ void MomentumEquations(System *sys)
     {
       for(int i = 0; i < sys->ntotal; i++)
 	{
-#pragma ivdep	  
 	  for(int d = 0; d < sys->dim; d++)
 	    dx[d] = sys->Position[i][d] - sys->Position[j][d];
 
@@ -204,7 +202,6 @@ void DensityEquation(System *sys)
 
  void EquationOfState(System *sys)
 {
-#pragma omp parallel for
   for(int i = 0; i < (sys->ntotal + sys->NBoundaries); i++)
     {
       const double rho = sys->rho[i]/sys->rho0;
@@ -325,6 +322,8 @@ void derivatives(System *sys, double t)
 
   /* track particles within space from inflow boundary */
   sys->inflowParticles = 0;
+
+#pragma omp parallel for 
   for(int i = 0; i < sys->ntotal; i++)
     {
       if(sys->Position[0][i] <= 0.1)
@@ -346,7 +345,6 @@ void derivatives(System *sys, double t)
   ii = sys->ntotal + sys->NBoundaries;
 
   //  left boundary
-#pragma omp parallel for
   for(int i = 0; i < sys->ntotal; i++) {
     double dx = fabs(sys->Position[i][0]-sys->LeftBoundary);
     if(dx < 2 * sys->hsml[i]) {
@@ -364,8 +362,8 @@ void derivatives(System *sys, double t)
       ii ++;
     }
   }
-  //  Right boundary 
-#pragma omp parallel for
+  //  Right boundary
+  //#pragma omp parallel for reduction(+:ii)
   for(int i = 0; i < sys->ntotal; i++) {
     if(fabs(sys->Position[i][0]-sys->RightBoundary) < 2 * sys->hsml[i]) {
       sys->Position[ii][0] = sys->Position[i][0] + 2.*fabs(sys->Position[i][0]-sys->RightBoundary);
@@ -404,7 +402,6 @@ void derivatives(System *sys, double t)
 
   //Bottom boundary
 
-#pragma omp parallel for
   for(int i = 0; i < sys->ntotal; i++)
     {
       if((sys->Position[i][1] <= 2*sys->hsml[i]) && (sys->Position[i][0] <= 12.0))
@@ -425,7 +422,6 @@ void derivatives(System *sys, double t)
     }
 
   // edges 
-#pragma omp parallel for
   for(int i = 0; i < sys->ntotal; i++) {
     double dx = fabs(sys->Position[i][0] - sys->LeftBoundary);
     double dy = sys->Position[i][1];
@@ -468,6 +464,15 @@ void derivatives(System *sys, double t)
   /* Initialize derivatives: must be after inoutflow.h */
   sys->NumberOfVirtualParticles = ii - sys->ntotal - sys->NBoundaries;
 
+  for(int s=0;s<sys->ntotal;s++)
+    {
+      if(!((sys->Position[s][0]>=0)&&(sys->Position[s][0]<10.1)&(sys->Position[s][1]>=0)&&(sys->Position[s][1]<6)))
+	{
+	  printf("Oh Oh there is an explosion occuring\n");
+	  break;
+	}
+    }
+    
   /* Interaction plus kernel definition*/
   CalculateKernel(sys);
 
@@ -494,13 +499,17 @@ void derivatives(System *sys, double t)
 
 
 
-
   LeonnardJonesBoundaryForces(sys);
 
   /*Average velocity : xSPH*/
 
   AverageVelocity(sys);
 
+  FILE *pos = fopen("position1.dat", "w+");
+
+  for(int s=0;s<ii;s++) 
+    fprintf(pos, "%.5lf %.5lf\n", sys->Position[s][0], sys->Position[s][1]);
+  fclose(pos);
 
   /* AverageInflowVelocity(sys);  */
 
