@@ -29,6 +29,11 @@ int main(int argc, char **argv)
   int nx = 100; /* number of particles in x-dirextion */
   int ny = 50;  /* number of particles in y-direction */
 
+  if(argc == 1)
+    {
+      printf("Give a maximum number of time step\n");
+      exit(1);
+    }
   maxtimestep= atoi(argv[1]);
   // parameters for water
   System *sys = CreateSystem(dim, nx, ny, 10, 5, 0.01, 50.0, 1000, 7, 64, 200);
