@@ -53,51 +53,61 @@ void inputbp(System *sys, double xl, double vl, double t)
     {
       sys->NBoundaries = 0;
       dx = 0.1;
+      double Omega = 2.445;
+      double Stroke = 0.5150;
       /* t = 0; */  
-      sys->LeftBoundary = 0.2575*(1.- cos(2.445*t));
+      sys->LeftBoundary = 0.5*Stroke*(1.0 - cos(Omega*t));
+      sys->WallVelocity = 0.5*Stroke*Omega*sin(Omega*t);
+      sys->WallAcceleration = 0.5*Stroke*Omega*Omega*cos(Omega*t);
       /* boundary particles in bottom boundary */
-      for(int i = -10; i < 112; i++)
-	{
-	  sys->Position[sys->ntotal+sys->NBoundaries][0] = i*dx + sys->LeftBoundary;
-	  sys->Position[sys->ntotal+sys->NBoundaries][1] = 0.0;
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.0;
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
-	  sys->NBoundaries++;
-	}
+      for(int j = 0; j < 3; j++)
+      {
+          for(int i = -10; i < 112; i++)
+          {
+              sys->Position[sys->ntotal+sys->NBoundaries][0] = i*dx + sys->LeftBoundary;
+	      sys->Position[sys->ntotal+sys->NBoundaries][1] = -j*sys->dx;
+	      sys->Velocity[sys->ntotal+sys->NBoundaries][0] = sys->WallVelocity;
+	      sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
+	      sys->NBoundaries++;
+          }
+      }
       /* boundary particles on left side */
-      /* sys->LeftBoundary = 0.2575 - 0.2575*cos(2.445*t); */
-      for(int i = -10; i < 100; i++)
-	{
-	  sys->Position[sys->ntotal+sys->NBoundaries][0] = sys->LeftBoundary;
-	  sys->Position[sys->ntotal+sys->NBoundaries][1] = (i+1)*dx;
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.2575*2.445*sin(2.445*t);
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
-	  sys->NBoundaries ++;	  
+      for(int j = 0; j < 3; j++)
+      {
+          for(int i = 0; i < 100; i++)
+          {
+              sys->Position[sys->ntotal+sys->NBoundaries][0] = -j*sys->dx + sys->LeftBoundary;
+              sys->Position[sys->ntotal+sys->NBoundaries][1] = (i+1)*dx;
+	      sys->Velocity[sys->ntotal+sys->NBoundaries][0] = sys->WallVelocity;
+	      sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
+	      sys->NBoundaries++;	  
 	}
-      xl = 0.2575 - 0.2575*sin(2.445*t);
-      vl = 0.2575*2.445*cos(2.445*t);
+      }
+  
       /* boundary particles on the right side */
-      sys->RightBoundary = sys->LeftBoundary + 10.1;
-      for(int i = -10; i < 100; i++)
-	{
-	  sys->Position[sys->ntotal+sys->NBoundaries][0] = sys->RightBoundary;
-	  sys->Position[sys->ntotal+sys->NBoundaries][1] = (i+1)*dx;
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][0] = 0.2575*2.445*sin(2.445*t);
-	  sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
-	  sys->NBoundaries++;
+      sys->RightBoundary = sys->LeftBoundary + sys->Lx + sys->dx;
+      for(int j = 0; j < 3; j++)
+      {
+          for(int i = 0; i < 100; i++)
+          {
+              sys->Position[sys->ntotal+sys->NBoundaries][0] = j*sys->dx + sys->RightBoundary;
+	      sys->Position[sys->ntotal+sys->NBoundaries][1] = (i+1)*dx;
+	      sys->Velocity[sys->ntotal+sys->NBoundaries][0] = sys->WallVelocity;
+	      sys->Velocity[sys->ntotal+sys->NBoundaries][1] = 0.0;
+	      sys->NBoundaries++;
 	}
-      xl = 0.2575 - 0.2575*cos(2.445*t) + 10.1;
-      vl = 0.2575*2.445*sin(2.445*t);
-      
+      }
+         
       /* initialize fluid variables */
       for(int i = 0; i < sys->NBoundaries; i++)
 	{
-	  sys->rho[sys->ntotal+i] = 1000.0;
+	  sys->rho[sys->ntotal+i] = sys->rho0;
 	  sys->mass[sys->ntotal+i] = sys->rho[sys->ntotal+i]*dx*dx;
 	  sys->Pressure[sys->ntotal+i] = 0.0;
-	  sys->Energy[sys->ntotal+i] = 357.1;
-	  sys->itype[sys->ntotal+i] = -2;
-	  sys->hsml[sys->ntotal+i] = 0.14;
+	  sys->Energy[sys->ntotal+i] = 0.0;
+	  sys->itype[sys->ntotal+i] = -1;
+	  sys->hsml[sys->ntotal+i] = sys->zeta*sys->dx; //0.129;
+          sys->KinVisc[sys->ntotal+i] = 0.0;
 	}
     }
   /* write data virt part to file */

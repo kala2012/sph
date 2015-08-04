@@ -24,7 +24,7 @@ void inoutflow(System *sys)
   for(int k = 0; k < sys->inflowParticles; k++)
     {
       int i = sys->i_inflow[k];
-      if(sys->Position[i][0] > 0.1)
+      if(sys->Position[i][0] > 100.1)
 	{
 	  sys->Position[ii][0] = sys->Position[i][0] - 0.1;
 	  sys->Position[ii][1] = sys->Position[i][1];
@@ -58,7 +58,7 @@ void inoutflow(System *sys)
   int ntotal = ii;
   for(int i = 0; i < ntotal; i++)
     {
-      if(sys->Position[i][0] > 50.0)
+      if(sys->Position[i][0] > 150.0)
 	{
 	  sys->Position[i][0] = sys->Position[ntotal-1][0];
 	  sys->Position[i][1] = sys->Position[ntotal-1][1];

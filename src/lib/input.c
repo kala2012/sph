@@ -62,26 +62,30 @@ void input(System *sys, double xl, double yl)
       fin = fopen("ini_other.dat","w+");
       
       /* outer grid */
+      double count = 0;
       for(int iy = 0; iy < sys->ny; iy++)
 	{
 	  for(int ix = 0; ix < sys->nx; ix++)
 	    {
 	      sys->Position[iy*sys->nx+ix][0] = (ix+1)*sys->dx;
-	      sys->Position[iy*sys->nx+ix][1] = (iy+1)*sys->dy;     
+	      sys->Position[iy*sys->nx+ix][1] = (iy+1)*sys->dy;
+              count++;
 	    }
 	}
-      
+      sys->ntotal = count;
       memset(sys->Velocity[0], 0, sizeof(double)*2*sys->MaxNumberOfParticles);
-      memset(sys->Pressure, 0, sizeof(double)*sys->MaxNumberOfParticles);
+//       memset(sys->Pressure, 0, sizeof(double)*sys->MaxNumberOfParticles);
       memset(sys->Energy, 0, sizeof(double)*sys->MaxNumberOfParticles);
       /* initial condtions */
+      double g = 9.81;
       for(int i = 0; i < sys->ntotal; i++)
 	{
-	  sys->rho[i] = sys->rho0*pow(1. + (9.81*sys->rho0/sys->CompressionFactor)*(sys->Ly-sys->Position[i][1]), 1./7.);
-	  sys->mass[i] = 1000*sys->dx*sys->dy; /* density is mass over area in 2D*/
-	  sys->hsml[i] = 0.14;
-	  sys->itype[i] = 2;
-	  sys->Pressure[i] = 0;
+	  sys->rho[i] = sys->rho0*pow(1. + (g*sys->rho0/sys->CompressionFactor)*(sys->Ly-sys->Position[i][1]), 1./sys->AdiabaticConstant);
+	  sys->mass[i] = sys->rho0*sys->dx*sys->dy; /* density is mass over area in 2D*/
+	  sys->hsml[i] = sys->zeta*sys->dx; //0.129;
+	  sys->itype[i] = 1;
+	  sys->Pressure[i] = sys->rho0*g*(sys->Ly-sys->Position[i][1]);
+          sys->KinVisc[i] = 1.0e-6;
 	}
 
       /* write just the derived particle info into file */

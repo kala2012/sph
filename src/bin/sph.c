@@ -18,19 +18,27 @@
 #include "output.h"
 #include "System.h"
 
-int main(void)
+int main(int argc, char**argv)
 {
   const int dim=2;
   double dt = 1e-3; /* set timestep */
-  unsigned int maxtimestep = 1000; /* set maximum timestep */
-  int printstep = 1;
+  unsigned int maxtimestep = 10; /* set maximum timestep */
+  int printstep = 100;
   int screenstep = 1;
   int itime; /* iteration time */
   int nx = 100; /* number of particles in x-dirextion */
   int ny = 50;  /* number of particles in y-direction */
   
+  
+  if(argc == 1)
+    {
+      printf("Give a maximum number of time step\n");
+      exit(1);
+    }
+  maxtimestep= atoi(argv[1]);
+  
   // parameters for water
-  System *sys = CreateSystem(dim, nx, ny, 10, 5, 0.01, 50.0, 1000, 7);
+  System *sys = CreateSystem(dim, nx, ny, 10, 5, 0.000, 50.0, 1000, 7, 21, 32, 128);
   double xl = 1.0;
   double yl = 1.0;
 
