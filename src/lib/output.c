@@ -40,7 +40,7 @@ void output(System *sys, int itime)
 	{
 	  fprintf(fip, "\t%e", sys->Velocity[i][d]);
 	}
-      fprintf(fip, "\t%.10lf\t%.10lf\t%.10lf\t%.10lf\t%.10lf\t%.10lf\n", sys->rho[i], sys->Pressure[i], sys->mass[i], sys->hsml[i], sys->vorticity[i], sys->divV[i]);
+      fprintf(fip, "\t%.10lf\t%.10lf\t%.10lf\t%.10lf\t%.10lf\t%.10lf\n", sys->rho[i], sys->Pressure[i], sys->mass[i], sys->hsml[i], sys->temps[i][0], sys->temps[i][1]);
     }
   fclose(fip);	
 }	

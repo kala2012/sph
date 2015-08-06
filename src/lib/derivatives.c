@@ -33,29 +33,29 @@ __inline__ void Kernel(System *sys, const double *__restrict__ dx, const double 
 {
   sys->alpha_cubic = 10.0/(7.*M_PI*h*h); /*2D normalization const for cubic spline*/
   sys->alpha_quintic = 7.0/(478.0*M_PI*h*h); /*2D normalization const for quintic spline*/
-  sys->alpha_wendland = 7.0/(64.0*M_PI*h*h);
+  sys->alpha_wendland = 9.0/(5.0*M_PI*h*h);
   const double q = r/h;
  
-  /*define cubic spline*/
-  if(q >= 0.0 && q < 1.0)
-    {
-      double qp2 = (2-q)*(2-q);
-      double q2 = (2-q)*qp2;
-      double qp1 = (1-q)*(1-q);
-      double q1 = (1-q)*qp1;
-      sys->w[niac] = sys->alpha_cubic*(0.25*q2 - q1);
-#pragma ivdep
-      for(int d = 0; d < sys->dim; d++)
-	sys->dwdx[niac][d] = sys->alpha_cubic*(-3 + 2.25*q)*dx[d]/(h*h);
-    }
-  else if(q >= 1.0 && q < 2.0)
-    {
-      double qp2 = (2-q)*(2-q);
-      double q2 = (2-q)*qp2;
-      sys->w[niac] = sys->alpha_cubic*0.25*q2;
-      for(int d = 0; d < sys->dim; d++)
-	sys->dwdx[niac][d] = -sys->alpha_cubic*0.75*qp2*dx[d]/(h*h*q);
-    }
+//   /*define cubic spline*/
+//   if(q >= 0.0 && q < 1.0)
+//     {
+//       double qp2 = (2-q)*(2-q);
+//       double q2 = (2-q)*qp2;
+//       double qp1 = (1-q)*(1-q);
+//       double q1 = (1-q)*qp1;
+//       sys->w[niac] = sys->alpha_cubic*(0.25*q2 - q1);
+// #pragma ivdep
+//       for(int d = 0; d < sys->dim; d++)
+// 	sys->dwdx[niac][d] = sys->alpha_cubic*(-3 + 2.25*q)*dx[d]/(h*h);
+//     }
+//   else if(q >= 1.0 && q < 2.0)
+//     {
+//       double qp2 = (2-q)*(2-q);
+//       double q2 = (2-q)*qp2;
+//       sys->w[niac] = sys->alpha_cubic*0.25*q2;
+//       for(int d = 0; d < sys->dim; d++)
+// 	sys->dwdx[niac][d] = -sys->alpha_cubic*0.75*qp2*dx[d]/(h*h*q);
+//     }
 
     
      
@@ -113,16 +113,22 @@ __inline__ void Kernel(System *sys, const double *__restrict__ dx, const double 
 //   // else sys->dwdx = 0 and sys->w = 0 . They are
 //     // initialized to zero by default at the beginning
 //   
-//     /*define wendland kernel */
-//   if(q >= 0.0 && q <= 2.0)
-//     {
-//       double q3 = (2-q)*(2-q)*(2-q);
-//       double q4 = (2-q)*q3;
-//       sys->w[niac] = sys->alpha_wendland*(1+2*q)*q4;
-// #pragma ivdep
-//       for(int d = 0; d < sys->dim; d++)
-// 	sys->dwdx[niac][d] = -sys->alpha_wendland*10*q3*dx[d]/(h*h);
-//     }
+    /*define wendland kernel */
+  if(q >= 0.0 && q <= 2.0)
+    {
+      double q5 = (1-0.5*q)*(1-0.5*q)*(1-0.5*q)*(1-0.5*q)*(1-0.5*q);
+      double q4 = (q-2)*(q-2)*(q-2)*(q-2);
+      double q3 = (q-2)*(q-2)*(q-2);
+      double q2 = q*q;
+      sys->w[niac] = sys->alpha_wendland*q5*(1+2.5*q+2*q2);
+      sys->w_r[niac] = -(7.0/32.0)*sys->alpha_wendland*q4*(1+2*q)/(h*h);
+#pragma ivdep
+      for(int d = 0; d < sys->dim; d++)
+      {
+          sys->dwdx[niac][d] = -(7.0/32.0)*sys->alpha_wendland*q4*(1+2*q)*dx[d]/(h*h);
+          sys->dwdx_r[niac][d] = -(7/32)*sys->alpha_wendland*10*q3*dx[d]/(h*h*h*h);
+      }
+    }
 }
 
 void CalculateKernel(System *sys)
@@ -130,6 +136,7 @@ void CalculateKernel(System *sys)
   double dx[3];
   const int particles = sys->ntotal+sys->NBoundaries+sys->NumberOfVirtualParticles;
   memset(sys->w, 0, sizeof(double)*sys->MaxNumberOfParticles);
+  memset(sys->w_r, 0, sizeof(double)*sys->MaxNumberOfParticles);
   memset(sys->dwdx[0], 0, sizeof(double)*sys->MaxNumberOfParticles*sys->dim);
   memset(sys->dwdx_r[0], 0, sizeof(double)*sys->MaxNumberOfParticles*sys->dim);
   int niac = 0;
@@ -175,7 +182,7 @@ void MomentumEquations(System *sys)
       double ppart = sys->Pressure[i]/(sys->rho[i]*sys->rho[i]) + sys->Pressure[j]/(sys->rho[j]*sys->rho[j]);
       if(virt_pres) /*virtual pressure for removing tensile instability*/
 	{             /*happens if p[i]<0 and p[j]<0*/
-	  f = sys->w[k]/(0.5*sys->alpha_cubic);
+	  f = sys->w[k]/(0.5*sys->alpha_wendland);
 	  if(sys->Pressure[i] < 0)
 	    RR = -0.2*sys->Pressure[i]/(sys->rho[i]*sys->rho[i]);
 
@@ -515,6 +522,14 @@ void AparentForces(System *sys)
         {
             sys->dvdt[i][d] -= sys->mass[j]*hijdwdx*dx[d]/sys->rho[i];   
             sys->dvdt[j][d] += sys->mass[i]*hijdwdx*dx[d]/sys->rho[j];
+        }
+        /* hessian part of the apparent forces */
+        for(int d = 0; d < sys->dim; d++)
+        {
+            double vijrij = dv[0]*dx[0] + dv[1]*dx[1];
+            double norm_vij = dv[0]*dv[0] + dx[1]*dx[1];
+            sys->dvdt[i][d] -= sys->mass[j]*(vijrij*sys->dwdx_r[k][d] + norm_vij*sys->dwdx[k][d])/sys->rho[i];
+            sys->dvdt[j][d] += sys->mass[i]*(vijrij*sys->dwdx_r[k][d] + norm_vij*sys->dwdx[k][d])/sys->rho[j];
         }
     }
 }

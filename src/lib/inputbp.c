@@ -106,7 +106,7 @@ void inputbp(System *sys, double xl, double vl, double t)
 	  sys->Pressure[sys->ntotal+i] = 0.0;
 	  sys->Energy[sys->ntotal+i] = 0.0;
 	  sys->itype[sys->ntotal+i] = -1;
-	  sys->hsml[sys->ntotal+i] = sys->zeta*sys->dx; //0.129;
+	  sys->hsml[sys->ntotal+i] = sys->zeta*sys->dx;//0.129;
           sys->KinVisc[sys->ntotal+i] = 0.0;
 	}
     }

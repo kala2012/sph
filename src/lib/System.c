@@ -92,6 +92,7 @@ System *CreateSystem(const int dim,
   posix_memalign(&a->j_pair, 16, sizeof(int)*a->MaxNumberOfParticles);
   posix_memalign(&a->rij2, 16, sizeof(double)*a->MaxNumberOfParticles);
   posix_memalign(&a->w, 16, sizeof(double)*a->MaxNumberOfParticles);
+  posix_memalign(&a->w_r, 16, sizeof(double)*a->MaxNumberOfParticles);
   posix_memalign(&a->i_inflow, 16, sizeof(int)*a->MaxNumberOfParticles);
   posix_memalign(&a->gradVxx, 16, sizeof(double)*a->MaxNumberOfParticles);
   posix_memalign(&a->gradVxy, 16, sizeof(double)*a->MaxNumberOfParticles);
@@ -162,6 +163,7 @@ void DestroySystem(System *a)
   free(a->j_pair);
   free(a->rij2);
   free(a->w);
+  free(a->w_r);
   free(a->i_inflow);
   free(a->gradVxx);
   free(a->gradVxy);
