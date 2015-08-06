@@ -60,7 +60,7 @@ void input(System *sys, double xl, double yl)
       fip = fopen("ini_xv.dat","w+");
       fop = fopen("ini_state.dat","w+");
       fin = fopen("ini_other.dat","w+");
-      
+
       /* outer grid */
       double count = 0;
       for(int iy = 0; iy < sys->ny; iy++)
@@ -121,13 +121,13 @@ void input(System *sys, double xl, double yl)
       /* fprintf(fip,"\n"); */
       /* fprintf(fop, "%d\t%e\t%e\t%e\t%e\n ", i, sys->mass[i], sys->rho[i], sys->Pressure[i], sys->Energy[i]); */
       /* fprintf(fin, "%d\t%d\t%e\n ", i, sys->itype[i], sys->hsml[i]); */
-    /* } */
-  printf("****************************************************\n");
-  printf("Initial particle info generated\n");
-  printf("Total number of particles:%d\n", sys->ntotal);
-  printf("****************************************************\n");
-}
-fclose(fip);
-fclose(fop);
-fclose(fin);
+      /* } */
+      printf("****************************************************\n");
+      printf("Initial particle info generated\n");
+      printf("Total number of particles:%d\n", sys->ntotal);
+      printf("****************************************************\n");
+    }
+  fclose(fip);
+  fclose(fop);
+  fclose(fin);
 }	

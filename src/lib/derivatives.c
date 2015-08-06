@@ -134,34 +134,30 @@ void CalculateKernel(System *sys)
   memset(sys->dwdx_r[0], 0, sizeof(double)*sys->MaxNumberOfParticles*sys->dim);
   int niac = 0;
   
-  
+  SearchNeighbors(sys);
+ 
   for(int i = 0; i < sys->ntotal; i++) // loop over all particles
     {
-      int test = (sys->Position[i][0]>= sys->dx);
-      for(int j = i+1; j < particles; j++)
-	{
-	  int check = test&&(j>(sys->ntotal+sys->NBoundaries-1));
-	  if(!check) {
-	    
-	    /*compute distance between 2 particles*/
-#pragma ivdep
-	    for(int d = 0; d < sys->dim; d++)
-	      dx[d] = sys->Position[i][d] - sys->Position[j][d]; 
-	    
-	    double r2 = dx[0]*dx[0] + dx[1]*dx[1]; /*square the initial separation dist*/
-	    double h = 0.5*(sys->hsml[i]+sys->hsml[j]); /* average smoothing length*/
-	    if(r2 <= 4.*h*h)
-	      {
-		sys->i_pair[niac] = i;
-		sys->j_pair[niac] = j;
-		sys->rij2[niac] = r2;
-		/*kernel is piecewise cubic spline*/
-		double r = sqrt(r2);
-		Kernel(sys, dx, r, h, niac);
-		niac++;
-	      }
+      int test = (sys->Position[i][0] >= sys->dx);
+      for(int j=0;j<sys->HowManyNeighbors;j++) {
+	/*compute distance between 2 particles*/
+	if(sys->Neighbors[i][j] > i) {
+	  double h = 0.5*(sys->hsml[i]+sys->hsml[sys->Neighbors[i][j]]); /* average smoothing length*/
+	  if(sys->DistanceNeighbors[i][j] <= 2*h)
+	    {
+	      double r2 = sys->DistanceNeighbors[i][j]*sys->DistanceNeighbors[i][j]; /*square the initial separation dist*/
+	      for(int d = 0; d < sys->dim; d++)
+		dx[d] = sys->Position[i][d] - sys->Position[sys->Neighbors[i][j]][d]; 
+	      sys->i_pair[niac] = i;
+	      sys->j_pair[niac] = sys->Neighbors[i][j];
+	      sys->rij2[niac] = r2;
+	      /*kernel is piecewise cubic spline*/
+	      double r = sqrt(r2);
+	      Kernel(sys, dx, r, h, niac);
+	      niac++;
+	    }
 	  }
-	}
+      }
     }
   sys->NumberOfInteractingParticles = niac;
 }
@@ -201,7 +197,6 @@ void MomentumEquations(System *sys)
       }
     }
 
-#pragma omp parallel for
   for(int i=0;i<sys->ntotal;i++)
     sys->dvdt[i][1] -= g;
 }
@@ -218,7 +213,6 @@ void MomentumEquations(System *sys)
     {
       for(int i = 0; i < sys->ntotal; i++)
 	{
-#pragma ivdep	  
 	  for(int d = 0; d < sys->dim; d++)
 	    dx[d] = sys->Position[i][d] - sys->Position[j][d];
 
@@ -280,7 +274,6 @@ void DensityEquation(System *sys)
 
  void EquationOfState(System *sys)
 {
-#pragma omp parallel for
   for(int i = 0; i < (sys->ntotal + sys->NBoundaries); i++)
     {
       const double rho = sys->rho[i]/sys->rho0;
@@ -577,6 +570,8 @@ void derivatives(System *sys, double t)
 
   /* track particles within space from inflow boundary */
   sys->inflowParticles = 0;
+
+#pragma omp parallel for 
   for(int i = 0; i < sys->ntotal; i++)
     {
       if(sys->Position[0][i] <= 0.1)
@@ -594,6 +589,7 @@ void derivatives(System *sys, double t)
       sys->Velocity_xsph[sys->ntotal + i][d] = sys->Velocity[sys->ntotal+i][d];
   }
 
+<<<<<<< HEAD
 //   /* create virtual particles within 2h*/
 //   ii = sys->ntotal + sys->NBoundaries;
 // 
@@ -719,8 +715,130 @@ void derivatives(System *sys, double t)
 // 
 //   /* Initialize derivatives: must be after inoutflow.h */
 //   sys->NumberOfVirtualParticles = ii - sys->ntotal - sys->NBoundaries;
+=======
+  /* create virtual particles within 2h*/
+  ii = sys->ntotal + sys->NBoundaries;
 
-  /* Interaction plus kernel definition*/
+  //  left boundary
+  for(int i = 0; i < sys->ntotal; i++) {
+    double dx = fabs(sys->Position[i][0]-sys->LeftBoundary);
+    if(dx < 2 * sys->hsml[i]) {
+      sys->Position[ii][0] = sys->LeftBoundary-dx;
+      sys->Position[ii][1] = sys->Position[i][1];
+      sys->Velocity[ii][0] = -sys->Velocity[i][0];
+      sys->Velocity[ii][1] = sys->Velocity[i][1];
+      sys->Velocity_xsph[ii][0] = -sys->Velocity_xsph[i][0];
+      sys->Velocity_xsph[ii][1] = sys->Velocity_xsph[i][1];
+      sys->mass[ii] = sys->mass[i];
+      sys->rho[ii] = sys->rho[i];
+      sys->Pressure[ii] = sys->Pressure[i];
+      sys->Energy[ii] = sys->Energy[i];
+      sys->hsml[ii] = sys->hsml[i];
+      ii ++;
+    }
+  }
+  //  Right boundary
+  //#pragma omp parallel for reduction(+:ii)
+  for(int i = 0; i < sys->ntotal; i++) {
+    if(fabs(sys->Position[i][0]-sys->RightBoundary) < 2 * sys->hsml[i]) {
+      sys->Position[ii][0] = sys->Position[i][0] + 2.*fabs(sys->Position[i][0]-sys->RightBoundary);
+      sys->Position[ii][1] = sys->Position[i][1];
+      sys->Velocity[ii][0] = -sys->Velocity[i][0];
+      sys->Velocity[ii][1] = sys->Velocity[i][1];
+      sys->Velocity_xsph[ii][0] = -sys->Velocity_xsph[i][0];
+      sys->Velocity_xsph[ii][1] = sys->Velocity_xsph[i][1];
+      sys->mass[ii] = sys->mass[i];
+      sys->rho[ii] = sys->rho[i];
+      sys->Pressure[ii] = sys->Pressure[i];
+      sys->Energy[ii] = sys->Energy[i];
+      sys->hsml[ii] = sys->hsml[i];
+      ii ++;
+    }
+  }
+
+  /* for(int k = 0; k < sys->inflowParticles; k++) */
+  /*   { */
+  /*     int i = sys->i_inflow[k]; */
+  /*     for(int j = 0; j <2; j++) */
+  /*	{ */
+  /*	  sys->Position[ii][0] = -j*0.1 + sys->Position[i][0]; */
+  /*	  sys->Position[ii][1] = sys->Position[i][1]; */
+  /*	  sys->Position[ii][0] = sys->Position[i][0]; */
+  /*	  sys->Velocity[ii][1] = sys->Velocity[i][1]; */
+  /*	  sys->Velocity[ii][0] = sys->Velocity[i][0]; */
+  /*	  sys->Velocity_xsph[ii][0] = sys->Velocity_xsph[i][0]; */
+  /*	  sys->mass[ii] = sys->mass[i]; */
+  /*	  sys->Pressure[ii] = sys->Pressure[i]; */
+  /*	  sys->Energy[ii] = sys->Energy[i]; */
+  /*	  sys->hsml[ii] = sys->hsml[i]; */
+  /*	  ii ++; */
+  /*	} */
+  /*   } */
+
+  //Bottom boundary
+
+  for(int i = 0; i < sys->ntotal; i++)
+    {
+      if((sys->Position[i][1] <= 2*sys->hsml[i]) && (sys->Position[i][0] <= 12.0))
+  	{
+  	  sys->Position[ii][0] = sys->Position[i][0];
+  	  sys->Position[ii][1] = -sys->Position[i][1];
+  	  sys->Velocity[ii][0] = sys->Velocity[i][0];
+  	  sys->Velocity[ii][1] = -sys->Velocity[i][1];
+  	  sys->Velocity_xsph[ii][0] = sys->Velocity_xsph[i][0];
+  	  sys->Velocity_xsph[ii][1] = -sys->Velocity_xsph[i][1];
+  	  sys->mass[ii] = sys->mass[i];
+  	  sys->rho[ii] = sys->rho[i];
+  	  sys->Pressure[ii] = sys->Pressure[i];
+  	  sys->Energy[ii] = sys->Energy[i];
+  	  sys->hsml[ii] = sys->hsml[i];
+  	  ii ++;
+  	}
+    }
+
+  // edges 
+  for(int i = 0; i < sys->ntotal; i++) {
+    double dx = fabs(sys->Position[i][0] - sys->LeftBoundary);
+    double dy = sys->Position[i][1];
+
+    if((dx < 2*sys->hsml[i])&&(dy < 2*sys->hsml[i]))
+      {
+  	sys->Position[ii][0] = sys->LeftBoundary-dx;
+  	sys->Position[ii][1] = -sys->Position[i][1];
+  	sys->Velocity[ii][0] = -sys->Velocity[i][0];
+  	sys->Velocity[ii][1] = -sys->Velocity[i][1];
+  	sys->Velocity_xsph[ii][0] = -sys->Velocity_xsph[i][0];
+  	sys->Velocity_xsph[ii][1] = -sys->Velocity_xsph[i][1];
+  	sys->mass[ii] = sys->mass[i];
+  	sys->rho[ii] = sys->rho[i];
+  	sys->Pressure[ii] = sys->Pressure[i];
+  	sys->Energy[ii] = sys->Energy[i];
+  	sys->hsml[ii] = sys->hsml[i];
+  	ii ++;
+      }
+
+    //  right corner
+
+    dx = fabs(sys->Position[i][0] - sys->RightBoundary);
+    if((dx < 2*sys->hsml[i])&&(dy < 2*sys->hsml[i])) {
+      sys->Position[ii][0] = sys->RightBoundary+dx;
+      sys->Position[ii][1] = -sys->Position[i][1];
+      sys->Velocity[ii][0] = -sys->Velocity[i][0];
+      sys->Velocity[ii][1] = -sys->Velocity[i][1];
+      sys->Velocity_xsph[ii][0] = -sys->Velocity_xsph[i][0];
+      sys->Velocity_xsph[ii][1] = -sys->Velocity_xsph[i][1];
+      sys->mass[ii] = sys->mass[i];
+      sys->rho[ii] = sys->rho[i];
+      sys->Pressure[ii] = sys->Pressure[i];
+      sys->Energy[ii] = sys->Energy[i];
+      sys->hsml[ii] = sys->hsml[i];
+      ii ++;
+    }
+  }
+
+  /* Initialize derivatives: must be after inoutflow.h */
+  sys->NumberOfVirtualParticles = ii - sys->ntotal - sys->NBoundaries;
+
   CalculateKernel(sys);
 
   // up to that it is correct.

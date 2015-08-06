@@ -10,7 +10,7 @@
 double **CreateMatrix(int x, int y)
 {
   double **a = (double **)malloc(sizeof(double *)*x);
-  posix_memalign(a, 16, sizeof(double)*x*y);
+  posix_memalign((void **)a, 16, sizeof(double)*x*y);
     
   for(int i=1;i<x;i++)
     a[i] = a[i-1] + y;
@@ -18,10 +18,11 @@ double **CreateMatrix(int x, int y)
 }
 
 
+
 int **CreateMatrixInt(int x, int y)
 {
   int **a = (int **)malloc(sizeof(int *)*x);
-  posix_memalign(a, 16, sizeof(int)*x*y);
+  posix_memalign((void **)a, 16, sizeof(int)*x*y);
     
   for(int i=1;i<x;i++)
     a[i] = a[i-1] + y;
@@ -180,6 +181,8 @@ void DestroySystem(System *a)
   free(a->dummyPressure);
   free(a->vorticity);
   free(a);
+  cleanup();
+  
 }
 
 void SearchNeighbors(System *sys)

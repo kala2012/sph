@@ -19,6 +19,7 @@ dnl # Checks for programs.
 AC_PROG_LIBTOOL
 AC_PROG_CXX(g++ icc)
 AC_PROG_CC(gcc icc)
+AC_OPENMP
 
 dnl #AX_MPI([],[AC_MSG_ERROR([could not find mpi library])])
 dnl #AC_CHECK_PROG(MPIRUN, mpirun, mpirun)
@@ -80,6 +81,7 @@ AS_IF([test "x$with_cuda" != "xno"],
 
 AC_SUBST(CUDA_CFLAGS)
 AC_SUBST(CUDA_LIBS)
+AC_SUBST(OPENMP_CFLAGS)
 
 
 dnl # mpi transpose support (included in fftw3)

@@ -65,7 +65,11 @@ typedef struct __system {
   int *i_pair, *j_pair;
   int *i_inflow;
   double *rij2, *w;
+<<<<<<< HEAD
   double **dwdx, **dwdx_r;
+=======
+  double **dwdx;
+>>>>>>> 1d946d3109c879a56e521e1ccee668d313ac61b5
   int **Neighbors;
   double **DistanceNeighbors;
   matrix r;
@@ -91,8 +95,12 @@ System *CreateSystem(const int dim,
 		     const double SpeedOfSound, 
 		     const double rho0,
 		     const double AdiabaticConstant,
+<<<<<<< HEAD
                      const int NearestNeighbor,
+=======
+>>>>>>> 1d946d3109c879a56e521e1ccee668d313ac61b5
 		     const int HowManyNeighbors,
 		     const int numReps);
 void DestroySystem(System *a);
+void SearchNeighbors(System *sys);
 #endif

@@ -14,7 +14,6 @@
 #include<omp.h>
 #include<gsl/gsl_sort.h>
 
-
 // A basic parallel implementation of brute force 1-NN
 void brutePar(matrix X, matrix Q, unint *NNs, real *dToNNs){
   real temp[CL];
@@ -55,15 +54,15 @@ void bruteK(matrix x, matrix q, unint **NNs, real **dToNNs, unint k){
   int i, j, l;
   int nt = omp_get_max_threads();
 
-  float ***d;
+  real ***d;
   size_t ***t;
-  d = (float***)calloc(nt, sizeof(*d));
+  d = (real***)calloc(nt, sizeof(*d));
   t = (size_t***)calloc(nt, sizeof(*t));
   for(i=0; i<nt; i++){
-    d[i] = (float**)calloc(CL, sizeof(**d));
+    d[i] = (real**)calloc(CL, sizeof(**d));
     t[i] = (size_t**)calloc(CL, sizeof(**t));
     for(j=0; j<CL; j++){
-      d[i][j] = (float*)calloc(x.pr, sizeof(***d));
+      d[i][j] = (real*)calloc(x.pr, sizeof(***d));
       t[i][j] = (size_t*)calloc(x.pr, sizeof(***t));
     }
   }
@@ -79,7 +78,7 @@ void bruteK(matrix x, matrix q, unint **NNs, real **dToNNs, unint k){
       }
     }
     for(l=0; l<CL; l++)
-      gsl_sort_float_smallest_index(t[tn][l], k, d[tn][l], 1, x.r);
+      gsl_sort_smallest_index(t[tn][l], k, d[tn][l], 1, x.r);
     
     for(l=0; l<CL; l++){
       if(row+l<q.r){
@@ -427,8 +426,8 @@ void bruteListK(matrix X, matrix Q, rep *ri, intList *toSearch, unint numReps, u
 	valVec[j*K + k] = tVals[j][k];
       }
     }
-    
-    gsl_sort_float_index(tempInds, valVec, 1, nt*K);
+
+    gsl_sort_index(tempInds, valVec, 1, nt*K);
     for( j=0; j<K; j++ ){
       dToNNs[i][j] = valVec[tempInds[j]];
       NNs[i][j] = indVec[tempInds[j]];
